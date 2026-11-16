@@ -13,6 +13,8 @@
     <WindowsPackageType>None</WindowsPackageType>
     <!-- Sem isto o publish não copia o WINbackup.pri nem os .xbf e o app fecha ao abrir -->
     <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- resources.pri (e não WINbackup.pri): o app acha os recursos mesmo com o .exe renomeado, ex. "WINbackup-0.2-beta.exe" -->
+    <ProjectPriFileName>resources.pri</ProjectPriFileName>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

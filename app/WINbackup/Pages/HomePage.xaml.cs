@@ -39,7 +39,7 @@ public sealed partial class HomePage : Page
         var folder = Destinations.BackupRoot(Settings.Data.RestoreFrom) ?? Destinations.BackupRoot(Settings.Data.Destination);
         var last = folder == null ? null : Destinations.Versions(folder).FirstOrDefault();
         RestoreSub.Text = last == null
-            ? L.T("Depois de formatar: acha o backup e deixa o PC como estava")
+            ? L.T("Acha o backup e deixa o PC como estava")
             : L.F("Último backup: {0:g} · {1}", VersionDate(last), Path.GetPathRoot(folder!) ?? "");
     }
 
