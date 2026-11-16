@@ -138,9 +138,11 @@
   <a href="https://github.com/winchestercanal/WINbackup/releases"><img src="https://img.shields.io/badge/Baixar%20o%20WINbackup-0.2%20beta-19e3ff?labelColor=0a0f1c&style=for-the-badge" alt="Baixar o WINbackup" height="40"></a>
 </p>
 
-1. Em **[Releases](https://github.com/winchestercanal/WINbackup/releases)**, baixe o `.zip` da versão mais recente.
-2. Extraia numa pasta (por exemplo `C:\WINbackup` ou um pendrive). Não precisa instalar nada: o .NET e o Windows App SDK já vêm dentro.
-3. Abra o `WINbackup.exe` e aceite o aviso de administrador.
+1. Em **[Releases](https://github.com/winchestercanal/WINbackup/releases)**, baixe o **`WINbackup-…-beta.exe`** da versão mais recente.
+2. Abra o arquivo e aceite o aviso de administrador. Pronto: é um arquivo só, não precisa instalar nem extrair nada. Dá para levar no pendrive.
+3. Prefere a pasta com os arquivos soltos? Baixe o `.zip`, extraia e abra o `WINbackup.exe` de dentro dela.
+
+Na primeira vez o app leva alguns segundos a mais para abrir, porque se prepara numa pasta temporária. Para guardar as configurações ao lado do `.exe` (modo portátil de verdade, sem tocar no PC), ligue **Opções → Modo portátil**.
 
 > [!NOTE]
 > O Windows pode mostrar **"O Windows protegeu o computador"** porque o app ainda não tem assinatura digital. Clique em **Mais informações → Executar assim mesmo**.

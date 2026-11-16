@@ -72,6 +72,17 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish/WINbackup 
 
 Teste sempre o pacote publicado também (`dotnet publish -c Teste … -o <pasta>`): a compilação normal pode funcionar e o pacote não. `EnableMsixTooling` no projeto é o que coloca o `WINbackup.pri` com as telas no pacote.
 
+## Publicar um release
+
+```powershell
+powershell -File app\tools\publish.ps1            # Release: app\publish\WINbackup-<versão>-beta.exe e -win-x64.zip
+powershell -File app\tools\publish.ps1 -Configuration Teste -Out <pasta>   # o mesmo sem pedir administrador, para testar
+```
+
+O `.exe` é um arquivo único (PublishSingleFile com IncludeAllContentForSelfExtract): na primeira execução ele se extrai numa pasta temporária. Por isso o código usa `Sys.ExeFolder` (pasta do .exe de verdade) para o `portable.txt` e a pasta `Dados`, nunca `AppContext.BaseDirectory`.
+
+Traduções novas: `python app/tools/l10n.py add arquivo.txt` (linhas `português|english|español`) e `python app/tools/l10n.py missing`.
+
 ## Organização do código
 
 ```

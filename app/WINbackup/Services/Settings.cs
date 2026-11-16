@@ -66,12 +66,12 @@ public static class Settings
     public const string PortableMarker = "portable.txt";
 
     /// <summary>Modo portátil: portable.txt ao lado do .exe guarda tudo em Dados\, sem tocar no PC.</summary>
-    public static bool IsPortable => File.Exists(Path.Combine(AppContext.BaseDirectory, PortableMarker));
+    public static bool IsPortable => File.Exists(Path.Combine(Sys.ExeFolder, PortableMarker));
 
     // WINBACKUP_DATA troca a pasta (testes); portable.txt usa a pasta Dados ao lado do .exe
     public static string Folder { get; } = Environment.GetEnvironmentVariable("WINBACKUP_DATA") is { Length: > 0 } custom
         ? custom
-        : IsPortable ? Path.Combine(AppContext.BaseDirectory, "Dados")
+        : IsPortable ? Path.Combine(Sys.ExeFolder, "Dados")
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WINbackup");
     static string FilePath => Path.Combine(Folder, "settings.json");
     static readonly JsonSerializerOptions Json = new() { WriteIndented = true };

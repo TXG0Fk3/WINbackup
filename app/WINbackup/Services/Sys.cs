@@ -6,6 +6,12 @@ namespace WINbackup.Services;
 
 public static partial class Sys
 {
+    /// <summary>Pasta onde está o WINbackup.exe. No .exe único o AppContext.BaseDirectory é a pasta temporária onde ele se extrai.</summary>
+    public static string ExeFolder => Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+
+    /// <summary>Rodando como .exe único (versão portátil), com tudo dentro de um arquivo.</summary>
+    public static bool IsSingleFile => string.IsNullOrEmpty(typeof(Sys).Assembly.Location);
+
     public static bool IsAdmin { get; } = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
     /// <summary>

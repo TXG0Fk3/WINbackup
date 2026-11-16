@@ -139,13 +139,13 @@ public sealed partial class OptionsPage : Page
     /// <summary>Liga/desliga o modo portátil: um arquivo portable.txt ao lado do .exe faz as configurações ficarem em Dados\.</summary>
     async Task SetPortable(ToggleRow row, bool on)
     {
-        var marker = Path.Combine(AppContext.BaseDirectory, Settings.PortableMarker);
+        var marker = Path.Combine(Sys.ExeFolder, Settings.PortableMarker);
         try
         {
             Settings.Save();
             if (on)
             {
-                var data = Path.Combine(AppContext.BaseDirectory, "Dados");
+                var data = Path.Combine(Sys.ExeFolder, "Dados");
                 Directory.CreateDirectory(data);
                 File.Copy(Path.Combine(Settings.Folder, "settings.json"), Path.Combine(data, "settings.json"), true);
                 File.WriteAllText(marker, "WINbackup em modo portátil: as configurações ficam na pasta Dados ao lado do .exe.");
@@ -175,14 +175,23 @@ public sealed partial class OptionsPage : Page
             Settings.Save();
             await Task.Run(() =>
             {
-                var source = AppContext.BaseDirectory.TrimEnd('\\');
-                foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+                Directory.CreateDirectory(target);
+                if (Sys.IsSingleFile)
                 {
-                    var rel = Path.GetRelativePath(source, file);
-                    if (rel.StartsWith("Dados\\", StringComparison.OrdinalIgnoreCase)) continue;
-                    var dest = Path.Combine(target, rel);
-                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                    File.Copy(file, dest, true);
+                    // .exe único: basta ele
+                    File.Copy(Environment.ProcessPath!, Path.Combine(target, "WINbackup.exe"), true);
+                }
+                else
+                {
+                    var source = Sys.ExeFolder.TrimEnd('\\');
+                    foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+                    {
+                        var rel = Path.GetRelativePath(source, file);
+                        if (rel.StartsWith("Dados\\", StringComparison.OrdinalIgnoreCase)) continue;
+                        var dest = Path.Combine(target, rel);
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                        File.Copy(file, dest, true);
+                    }
                 }
                 Directory.CreateDirectory(Path.Combine(target, "Dados"));
                 File.Copy(Path.Combine(Settings.Folder, "settings.json"), Path.Combine(target, "Dados", "settings.json"), true);
