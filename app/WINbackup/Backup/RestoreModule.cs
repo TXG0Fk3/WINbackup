@@ -75,22 +75,6 @@ public static class RestoreModule
             : path;
     }
 
-    /// <summary>Uma etapa que falha não derruba as outras: registra o erro e a restauração segue.</summary>
-    static async Task Isolated(BackupRunner r, StepItem step, string what, Func<Task> body)
-    {
-        try
-        {
-            await body();
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            CrashLog.Write(ex);
-            r.Step(step, StepState.Error, L.T("Falhou"));
-            r.Error(L.F("{0}: falha inesperada ({1}). As outras etapas continuam.", what, ex.Message));
-            r.Modules.Add(new ModuleResult(what, L.T("Falhou"), StepState.Error));
-        }
-    }
-
     public static async Task RunAsync(BackupRunner r, StepItem? filesStep, StepItem? prep, StepItem? install, StepItem? programsStep, StepItem? windowsStep, CancellationToken token)
     {
         await Task.Yield();
@@ -103,22 +87,29 @@ public static class RestoreModule
             var zip = Path.Combine(src.VersionPath, "Drivers_Backup.zip");
             var path = Directory.Exists(folder) ? folder : File.Exists(zip) ? zip : null;
             if (path == null || prep == null || install == null) continue;
-            await Isolated(r, install, L.T("Drivers"), () => DriversModule.RestoreAsync(r, prep, install, path, token));
+            await r.Isolate(install, L.T("Drivers"), () => DriversModule.RestoreAsync(r, prep, install, path, token));
             break;
         }
         // Depois os programas: as configurações dos apps precisam deles instalados
         if (programsStep != null)
         {
             if (spec.InstallPackages != null)
-                await Isolated(r, programsStep, L.T("Programas"), () => ProgramsModule.InstallAsync(r, programsStep, spec.InstallPackages, null, token));
+                await r.Isolate(programsStep, L.T("Programas"), () => ProgramsModule.InstallAsync(r, programsStep, spec.InstallPackages, null, token));
             else if (spec.RestoreSources.FirstOrDefault(s => s.Programs) is { } ps)
-                await Isolated(r, programsStep, L.T("Programas"), () => ProgramsModule.InstallAsync(r, programsStep,
+                await r.Isolate(programsStep, L.T("Programas"), () => ProgramsModule.InstallAsync(r, programsStep,
                     ps.Manifest.Programs.Where(p => p.Source is "winget" or "msstore").Select(p => (p.Id, p.Name, p.Source)).ToList(),
                     ProgramsModule.ManualListPath(ps.VersionPath), token));
         }
         if (windowsStep != null && spec.RestoreSources.FirstOrDefault(s => s.WindowsSettings) is { } ws)
-            await Isolated(r, windowsStep, L.T("Configurações do Windows"), () => ConfigsModule.RestoreWindowsAsync(r, windowsStep, ws.VersionPath, ws.Manifest, token));
-        if (filesStep == null) return;
+            await r.Isolate(windowsStep, L.T("Configurações do Windows"), () => ConfigsModule.RestoreWindowsAsync(r, windowsStep, ws.VersionPath, ws.Manifest, token));
+        if (filesStep != null)
+            await r.Isolate(filesStep, L.T("Arquivos"), () => RestoreFilesAsync(r, filesStep, token));
+    }
+
+    static async Task RestoreFilesAsync(BackupRunner r, StepItem filesStep, CancellationToken token)
+    {
+        await Task.Yield();
+        var spec = r.Spec;
 
         // 1. Plano
         r.Activity = L.T("arquivos");
@@ -182,7 +173,9 @@ public static class RestoreModule
                 if (w.Entry.Sha256 != null && hash != w.Entry.Sha256)
                 {
                     mismatch++;
-                    r.Error(L.F("Conteúdo diferente do backup (SHA-256): {0}", w.Entry.Path));
+                    var reason = L.F("Conteúdo diferente do backup (SHA-256): {0}", w.Entry.Path);
+                    r.Error(reason);
+                    r.Report(new Problem(ProblemKind.File, w.Target, reason, w.Source, w.Target));
                 }
                 restored++;
             }
@@ -191,13 +184,15 @@ public static class RestoreModule
             {
                 failed++;
                 Advance(w.Entry.Size - fileDone);
-                r.Error(ex switch
+                var reason = ex switch
                 {
-                    FileNotFoundException => L.F("Faltando no backup: {0}", w.Entry.Path),
+                    FileNotFoundException or DirectoryNotFoundException when !File.Exists(w.Source) => L.F("Faltando no backup: {0}", w.Entry.Path),
                     UnauthorizedAccessException => L.F("Sem permissão para gravar: {0}", w.Target),
                     IOException io when (io.HResult & 0xFFFF) is 32 or 33 => L.F("Arquivo em uso no destino (feche o programa): {0}", w.Target),
                     _ => L.F("Não foi possível restaurar {0}: {1}", w.Entry.Path, ex.Message),
-                });
+                };
+                r.Error(reason);
+                r.Report(new Problem(ProblemKind.File, w.Target, reason, w.Source, w.Target));
             }
         }
         foreach (var d in emptyDirs)

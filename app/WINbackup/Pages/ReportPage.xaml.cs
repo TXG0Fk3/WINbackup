@@ -59,10 +59,10 @@ public sealed partial class ReportPage : Page
         var issues = r.WarningCount + r.ErrorCount;
         (TitleText.Text, var color, var bg, var icon) = r.State switch
         {
-            RunState.Canceled => (L.F("{0} cancelado", what), UI.Warn, "#2a1f0b", Icons.Close),
-            RunState.Failed => (L.F("{0} não terminou", what), UI.ErrSoft, "#2a0d15", Icons.Warning),
-            _ when r.ErrorCount > 0 => (L.F("{0} concluído com erros", what), UI.Warn, "#2a1f0b", Icons.Warning),
-            _ => (L.F("{0} concluído", what), UI.Ok, "#0b2a1f", Icons.Check),
+            RunState.Canceled => (restore ? L.T("Restauração cancelada") : L.T("Backup cancelado"), UI.Warn, "#2a1f0b", Icons.Close),
+            RunState.Failed => (restore ? L.T("A restauração não terminou") : L.T("O backup não terminou"), UI.ErrSoft, "#2a0d15", Icons.Warning),
+            _ when r.ErrorCount > 0 => (restore ? L.T("Restauração concluída com erros") : L.T("Backup concluído com erros"), UI.Warn, "#2a1f0b", Icons.Warning),
+            _ => (restore ? L.T("Restauração concluída") : L.T("Backup concluído"), UI.Ok, "#0b2a1f", Icons.Check),
         };
         StatusCircle.BorderBrush = color;
         StatusCircle.Background = UI.Brush(bg);
@@ -117,8 +117,80 @@ public sealed partial class ReportPage : Page
         if (warnings.Count > 4)
             WarningsPanel.Children.Add(new TextBlock { Text = L.F("+ {0} avisos no log", warnings.Count - 4), Foreground = UI.Muted, FontSize = 12.5 });
 
+        FillProblems(r);
         RebootButton.Visibility = r.RebootRequired ? Visibility.Visible : Visibility.Collapsed;
         FolderButton.Visibility = restore ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>Lista do que deu errado, por tipo, com caminhos e comandos que dá para selecionar e copiar.</summary>
+    void FillProblems(BackupRunner r)
+    {
+        List<Problem> list;
+        lock (r.Problems) list = r.Problems.ToList();
+        if (list.Count == 0) return;
+        ProblemsCard.Visibility = Visibility.Visible;
+        ProblemsTitle.Text = L.N(list.Count, "O que deu errado (1)", "O que deu errado ({0})");
+        CopyCommandsButton.Visibility = list.Any(p => p.Command != null) ? Visibility.Visible : Visibility.Collapsed;
+        OpenProblemsButton.Visibility = File.Exists(r.ProblemsPath) ? Visibility.Visible : Visibility.Collapsed;
+        var mono = (FontFamily)Application.Current.Resources["Mono"];
+        const int Shown = 8;
+
+        foreach (var group in list.GroupBy(p => p.Kind).OrderBy(g => g.Key))
+        {
+            var box = new StackPanel { Spacing = 8 };
+            box.Children.Add(new TextBlock { Text = $"{ProblemReport.Title(group.Key, r.Spec.IsRestore)} ({group.Count()})", FontWeight = FontWeights.SemiBold, FontSize = 14 });
+            var commands = ProblemReport.Commands(group);
+            if (commands.Length > 0)
+            {
+                box.Children.Add(new TextBlock { Text = L.T("Para tentar de novo, cole no Terminal aberto como administrador:"), FontSize = 12, Foreground = UI.Muted });
+                box.Children.Add(new Border
+                {
+                    Style = (Style)Application.Current.Resources["ConsoleCard"], Padding = new Thickness(14, 10, 14, 10),
+                    Child = new TextBlock { Text = commands, FontFamily = mono, FontSize = 12, LineHeight = 19, Foreground = UI.NeonSoft, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true },
+                });
+            }
+            foreach (var p in group.Take(Shown))
+            {
+                var item = new StackPanel { Spacing = 2, Padding = new Thickness(0, 4, 0, 4) };
+                item.Children.Add(new TextBlock { Text = p.What, FontSize = 13, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+                item.Children.Add(new TextBlock { Text = p.Reason, FontSize = 12, Foreground = UI.Warn, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+                if (p.From != null)
+                    item.Children.Add(new TextBlock { Text = r.Spec.IsRestore ? L.F("No backup: {0}", p.From) : L.F("Origem: {0}", p.From),
+                        FontFamily = mono, FontSize = 11.5, Foreground = UI.Muted2, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+                if (p.To != null && p.To != p.What)
+                    item.Children.Add(new TextBlock { Text = L.F("Destino: {0}", p.To), FontFamily = mono, FontSize = 11.5, Foreground = UI.Muted2, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+                box.Children.Add(item);
+            }
+            if (group.Count() > Shown)
+                box.Children.Add(new TextBlock { Text = L.F("+ {0} na lista completa", group.Count() - Shown), FontSize = 12, Foreground = UI.Muted });
+            ProblemsPanel.Children.Add(box);
+        }
+    }
+
+    void OnCopyList(object sender, RoutedEventArgs e)
+    {
+        if (_r == null) return;
+        Copy(ProblemReport.Text(_r));
+        CopyListButton.Content = L.T("Copiado");
+    }
+
+    void OnCopyCommands(object sender, RoutedEventArgs e)
+    {
+        if (_r == null) return;
+        lock (_r.Problems) Copy(ProblemReport.Commands(_r.Problems));
+        CopyCommandsButton.Content = L.T("Copiado");
+    }
+
+    void OnOpenProblems(object sender, RoutedEventArgs e)
+    {
+        if (_r?.ProblemsPath is { Length: > 0 } p && File.Exists(p)) Sys.Open(p);
+    }
+
+    static void Copy(string text)
+    {
+        var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        dp.SetText(text);
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
     }
 
     void Stat(int col, string label, string value, Brush color)
@@ -175,7 +247,8 @@ public sealed partial class ReportPage : Page
           .Append("table{width:100%;border-collapse:collapse;background:#0e1526;border:1px solid #1c2a48;border-radius:12px;overflow:hidden;margin-bottom:18px}")
           .Append("td,th{padding:10px 16px;border-bottom:1px solid #16223d;text-align:left}th{color:#8ea3c7;font-weight:400;font-size:12px}")
           .Append(".warn{background:#1d1608;border:1px solid #5c4413;color:#ffd89a;border-radius:12px;padding:12px 16px;margin-bottom:8px}")
-          .Append("code{font-family:'Cascadia Mono',Consolas,monospace;font-size:12.5px}</style></head><body>");
+          .Append("code,pre{font-family:'Cascadia Mono',Consolas,monospace;font-size:12.5px}h2{font-size:17px;margin:22px 0 8px}")
+          .Append("pre{background:#070b15;border:1px solid #16223d;border-radius:10px;padding:12px 14px;color:#7befff;white-space:pre-wrap}.why{color:#ffb547;font-size:13px}</style></head><body>");
         sb.Append($"<h1>{H(TitleText.Text)}</h1><p class=\"sub\">{H(SubText.Text)} · {r.StartedAt:g}</p><div class=\"grid\">");
         foreach (var child in StatsGrid.Children.OfType<Border>())
         {
@@ -186,6 +259,20 @@ public sealed partial class ReportPage : Page
         foreach (var m in r.Modules) sb.Append($"<tr><td>{H(L.T(m.Name))}</td><td>{H(m.Detail)}</td></tr>");
         sb.Append("</table>");
         lock (r.Warnings) foreach (var w in r.Warnings) sb.Append($"<div class=\"warn\">{H(w)}</div>");
+        List<Problem> problems;
+        lock (r.Problems) problems = r.Problems.ToList();
+        foreach (var group in problems.GroupBy(p => p.Kind).OrderBy(g => g.Key))
+        {
+            sb.Append($"<h2>{H(ProblemReport.Title(group.Key, r.Spec.IsRestore))} ({group.Count()})</h2>");
+            if (ProblemReport.Commands(group) is { Length: > 0 } cmds)
+                sb.Append($"<p class=\"sub\">{H(L.T("Para tentar de novo, cole no Terminal aberto como administrador:"))}</p><pre>{H(cmds)}</pre>");
+            sb.Append("<table>");
+            foreach (var p in group)
+                sb.Append($"<tr><td><b>{H(p.What)}</b><br><span class=\"why\">{H(p.Reason)}</span>" +
+                          (p.From != null ? $"<br><code>{H(r.Spec.IsRestore ? L.F("No backup: {0}", p.From) : L.F("Origem: {0}", p.From))}</code>" : "") +
+                          (p.To != null && p.To != p.What ? $"<br><code>{H(L.F("Destino: {0}", p.To))}</code>" : "") + "</td></tr>");
+            sb.Append("</table>");
+        }
         sb.Append($"<p class=\"sub\">{L.T("Log completo:")} <code>{H(r.LogPath)}</code></p></body></html>");
 
         var folder = r.Spec.Kind == JobKind.Backup && Directory.Exists(r.VersionPath) ? r.VersionPath : Path.GetDirectoryName(r.LogPath)!;

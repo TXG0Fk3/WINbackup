@@ -117,6 +117,7 @@ public static class ProgramsModule
         else
         {
             r.Warn(L.T("O winget export não gerou o arquivo: ") + string.Join(" ", output.TakeLast(2)));
+            r.Report(new Problem(ProblemKind.Item, L.T("Programas"), L.T("O winget export não gerou o arquivo: ") + string.Join(" ", output.TakeLast(2))));
         }
         WriteManualList(Path.Combine(folder, ManualFile), manual);
 
@@ -211,6 +212,10 @@ public static class ProgramsModule
         "Microsoft.AppInstaller", "Microsoft.DesktopAppInstaller", "9NBLGGH4NNS1",
     };
 
+    /// <summary>Comando para instalar à mão um programa que falhou.</summary>
+    static string InstallCommand(string id, string source) =>
+        $"winget install --id \"{id}\" --exact --source {source} --accept-package-agreements --accept-source-agreements";
+
     /// <summary>Instala um pacote por vez: dá progresso real e o resultado de cada programa.</summary>
     public static async Task InstallAsync(BackupRunner r, StepItem step, List<(string Id, string Name, string Source)> packages, string? manualList, CancellationToken token)
     {
@@ -220,6 +225,11 @@ public static class ProgramsModule
         {
             r.Step(step, StepState.Error, L.T("winget não encontrado"));
             r.Error(L.T("O winget não foi encontrado. Abra a Microsoft Store, atualize o \"Instalador de Aplicativo\" e tente de novo."));
+            r.Report(new Problem(ProblemKind.Item, L.T("Programas"),
+                L.T("O winget não foi encontrado. Abra a Microsoft Store, atualize o \"Instalador de Aplicativo\" e tente de novo.")));
+            foreach (var (pid, pname, psource) in packages)
+                if (!WingetItself.Contains(pid))
+                    r.Report(new Problem(ProblemKind.Program, pname, L.T("winget não encontrado"), Command: InstallCommand(pid, psource)));
             r.Modules.Add(new ModuleResult(L.T("Programas"), L.T("winget não encontrado"), StepState.Error));
             return;
         }
@@ -258,7 +268,9 @@ public static class ProgramsModule
                 catch (Exception again) when (again is not OperationCanceledException)
                 {
                     failed++;
-                    r.Warn(L.F("Não instalou {0} ({1}): o winget não abriu ({2})", name, id, again.Message));
+                    var why = L.F("Não instalou {0} ({1}): o winget não abriu ({2})", name, id, again.Message);
+                    r.Warn(why);
+                    r.Report(new Problem(ProblemKind.Program, name, why, Command: InstallCommand(id, source)));
                     r.Progress(step, (i + 1.0) / packages.Count);
                     continue;
                 }
@@ -268,7 +280,9 @@ public static class ProgramsModule
             else
             {
                 failed++;
-                r.Warn(L.F("Não instalou {0} ({1}): código 0x{2:X8}. {3}", name, id, code, output.LastOrDefault(l => l.Length > 3)));
+                var why = L.F("Não instalou {0} ({1}): código 0x{2:X8}. {3}", name, id, code, output.LastOrDefault(l => l.Length > 3));
+                r.Warn(why);
+                r.Report(new Problem(ProblemKind.Program, name, why, Command: InstallCommand(id, source)));
             }
             r.Progress(step, (i + 1.0) / packages.Count);
         }

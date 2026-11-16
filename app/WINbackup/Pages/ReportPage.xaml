@@ -38,6 +38,26 @@
                 </StackPanel>
             </Grid>
 
+            <!-- O que deu errado: arquivos, programas e drivers, com caminhos e comandos para resolver à mão -->
+            <Border x:Name="ProblemsCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                <StackPanel Spacing="14">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="ProblemsTitle" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Style="{StaticResource Small}" TextWrapping="Wrap"
+                                       Text="{s:T K='O resto da tarefa foi feito normalmente. Use os caminhos e comandos abaixo para resolver à mão.'}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+                            <Button x:Name="CopyCommandsButton" Style="{StaticResource SmallButton}" Content="{s:T K='Copiar comandos'}" Click="OnCopyCommands"/>
+                            <Button x:Name="CopyListButton" Style="{StaticResource SmallButton}" Content="{s:T K='Copiar lista'}" Click="OnCopyList"/>
+                            <Button x:Name="OpenProblemsButton" Style="{StaticResource SmallButton}" Content="{s:T K='Abrir lista completa'}" Click="OnOpenProblems"/>
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel x:Name="ProblemsPanel" Spacing="18"/>
+                </StackPanel>
+            </Border>
+
             <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
                 <Button x:Name="RebootButton" Style="{StaticResource AccentButton}" Content="{s:T K='Reiniciar agora'}" Click="OnReboot" Visibility="Collapsed"/>
                 <Button x:Name="ExportButton" Style="{StaticResource SecondaryButton}" Content="{s:T K='Exportar relatório (HTML)'}" Click="OnExport"/>

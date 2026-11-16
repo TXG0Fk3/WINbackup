@@ -60,6 +60,7 @@ public static class FilesModule
             if (!Directory.Exists(folder.Path))
             {
                 r.Warn(L.F("Pasta não encontrada, ignorada: {0}", folder.Path));
+                r.Report(new Problem(ProblemKind.Item, folder.Path, L.T("Pasta não encontrada, ignorada")));
                 continue;
             }
             var stored = folder.Name;
@@ -157,14 +158,16 @@ public static class FilesModule
                     failed++;
                     failedBy[w.Group] = failedBy.GetValueOrDefault(w.Group) + 1;
                     done += w.Entry.Size - fileDone;
-                    r.Error(ex switch
+                    var reason = ex switch
                     {
                         IOException io when IsLocked(io) => L.F("Arquivo em uso, não foi copiado: {0}", w.Entry.Path),
                         UnauthorizedAccessException => L.F("Sem permissão para ler: {0}", w.Entry.Path),
                         FileNotFoundException or DirectoryNotFoundException => L.F("Arquivo sumiu durante o backup: {0}", w.Entry.Path),
                         IOException io when (io.HResult & 0xFFFF) is 112 or 39 => L.F("Destino sem espaço ao copiar: {0}", w.Entry.Path),
                         _ => L.F("Não foi possível copiar {0}: {1}", w.Entry.Path, ex.Message),
-                    });
+                    };
+                    r.Error(reason);
+                    r.Report(new Problem(ProblemKind.File, w.Source, reason, w.Source, w.Target));
                 }
                 if (copied % 200 == 0) m.Save(r.VersionPath);
             }
@@ -213,7 +216,9 @@ public static class FilesModule
             catch (Exception ex)
             {
                 mismatches++;
-                r.Error(L.F("Não foi possível verificar {0}: {1}", w.Entry.Path, ex.Message));
+                var reason = L.F("Não foi possível verificar {0}: {1}", w.Entry.Path, ex.Message);
+                r.Error(reason);
+                r.Report(new Problem(ProblemKind.File, w.Source, reason, w.Source, w.Target));
             }
         }
         m.HashChecked = true;

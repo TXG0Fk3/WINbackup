@@ -32,6 +32,10 @@ public sealed class BackupRunner
     public ObservableCollection<LogLine> Tail { get; } = new();
     public List<string> Warnings { get; } = new();
     public List<ModuleResult> Modules { get; } = new();
+    /// <summary>Tudo o que deu errado, com caminhos e comandos (relatório e problemas_*.txt).</summary>
+    public List<Problem> Problems { get; } = new();
+    /// <summary>problemas_*.txt gravado no fim, se houve problemas.</summary>
+    public string ProblemsPath { get; private set; } = "";
 
     public RunState State { get; private set; } = RunState.Running;
     public bool IsFinished => State is RunState.Completed or RunState.Canceled or RunState.Failed;
@@ -190,6 +194,53 @@ public sealed class BackupRunner
         lock (Warnings) if (Warnings.Count < 50) Warnings.Add(msg);
     }
 
+    /// <summary>Anota um problema para o relatório final (a tarefa continua).</summary>
+    public void Report(Problem p)
+    {
+        lock (Problems) Problems.Add(p);
+    }
+
+    /// <summary>
+    /// Roda uma etapa sem deixar um erro inesperado derrubar a tarefa: registra no log e no relatório e segue
+    /// para a próxima etapa. Cancelar continua parando tudo.
+    /// </summary>
+    public async Task Isolate(StepItem? step, string what, Func<Task> body)
+    {
+        try
+        {
+            await body();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            CrashLog.Write(ex);
+            if (step != null) Step(step, StepState.Error, L.T("Falhou"));
+            Error(L.F("{0}: falha inesperada ({1}). As outras etapas continuam.", what, ex.Message));
+            Report(new Problem(ProblemKind.Item, what, ex.Message));
+            lock (Modules) Modules.Add(new ModuleResult(what, L.T("Falhou"), StepState.Error));
+        }
+    }
+
+    /// <summary>Grava a lista de problemas ao lado do log.</summary>
+    void WriteProblems()
+    {
+        int count;
+        lock (Problems) count = Problems.Count;
+        if (count == 0) return;
+        try
+        {
+            var dir = Directory.Exists(VersionPath) ? VersionPath : Path.Combine(Settings.Folder, "logs");
+            Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, $"problemas_{StartedAt:yyyy-MM-dd_HH-mm-ss}.txt");
+            File.WriteAllText(path, ProblemReport.Text(this), System.Text.Encoding.UTF8);
+            ProblemsPath = path;
+            Info(L.F("Lista de problemas: {0}", path));
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write(ex);
+        }
+    }
+
     void Write(string level, string msg)
     {
         var now = DateTime.Now;
@@ -299,12 +350,14 @@ public sealed class BackupRunner
             EndedAt = DateTime.Now;
             CrashLog.Write(ex);
             Error(L.T("Falha inesperada: ") + ex.Message);
+            Report(new Problem(ProblemKind.Item, L.T(Spec.Title), ex.Message));
             foreach (var s in Steps.Where(s => s.State == StepState.Running))
                 Step(s, StepState.Error, L.T("Falhou"));
             SetState(RunState.Failed);
         }
         finally
         {
+            WriteProblems();
             lock (_logLock) { _logFile?.Dispose(); _logFile = null; }
             _lock?.Dispose();
             _lock = null;
@@ -327,33 +380,37 @@ public sealed class BackupRunner
         var manifest = new Manifest { CreatedAt = StartedAt, Name = Path.GetFileName(VersionPath), Title = Spec.Title };
         manifest.Save(VersionPath);
 
+        // Cada etapa isolada: um erro inesperado numa delas não impede as outras
         if (_files != null)
         {
             manifest.Modules.Add(Spec.FilesLabel);
-            await FilesModule.RunAsync(this, _files, _vss, _verify, manifest, token);
+            await Isolate(_files, L.T(Spec.FilesLabel), () => FilesModule.RunAsync(this, _files, _vss, _verify, manifest, token));
         }
         if (_programs != null)
         {
             manifest.Modules.Add("Programas");
-            await ProgramsModule.BackupAsync(this, _programs, manifest, token);
+            await Isolate(_programs, L.T("Programas"), () => ProgramsModule.BackupAsync(this, _programs, manifest, token));
         }
         if (_windows != null)
         {
             manifest.Modules.Add("Configurações do Windows");
-            await ConfigsModule.BackupWindowsAsync(this, _windows, manifest, token);
+            await Isolate(_windows, L.T("Configurações do Windows"), () => ConfigsModule.BackupWindowsAsync(this, _windows, manifest, token));
         }
-        if (Spec.Games) manifest.SteamLibraries = GamesModule.SteamLibraries();
+        if (Spec.Games)
+            await Isolate(null, L.T("Bibliotecas da Steam"), () => { manifest.SteamLibraries = GamesModule.SteamLibraries(); return Task.CompletedTask; });
         if (Spec.Browsers)
-        {
-            var browsers = BrowsersModule.Detect();
-            BrowsersModule.WriteExtensionList(VersionPath, browsers);
-            if (Settings.Data.PasswordCsvs.Count == 0 && browsers.Any(b => b.Installed))
-                Warn(L.T("Senhas dos navegadores não foram exportadas. Faça a exportação guiada em Navegadores antes de formatar."));
-        }
+            await Isolate(null, L.T("Lista de extensões"), () =>
+            {
+                var browsers = BrowsersModule.Detect();
+                BrowsersModule.WriteExtensionList(VersionPath, browsers);
+                if (Settings.Data.PasswordCsvs.Count == 0 && browsers.Any(b => b.Installed))
+                    Warn(L.T("Senhas dos navegadores não foram exportadas. Faça a exportação guiada em Navegadores antes de formatar."));
+                return Task.CompletedTask;
+            });
         if (_drivers != null)
         {
             manifest.Modules.Add("Drivers");
-            await DriversModule.BackupAsync(this, _drivers, manifest, token);
+            await Isolate(_drivers, L.T("Drivers"), () => DriversModule.BackupAsync(this, _drivers, manifest, token));
         }
         foreach (var name in Spec.Unavailable)
             Modules.Add(new ModuleResult(name, L.T("Ainda não disponível nesta versão"), StepState.Unavailable));
@@ -397,9 +454,11 @@ public sealed class BackupRunner
         var failed = State == RunState.Failed || ErrorCount > 0;
         if (State == RunState.Canceled) return;
         if (failed ? !Settings.Data.NotifyErrors : !Settings.Data.NotifyDone) return;
-        var what = Spec.IsRestore ? L.T("Restauração") : L.T("Backup");
-        var title = State == RunState.Failed ? $"{what} falhou"
-            : WarningCount + ErrorCount > 0 ? L.F("{0} concluído com {1} avisos", what, WarningCount + ErrorCount) : L.F("{0} concluído", what);
+        var restore = Spec.IsRestore;
+        var issues = WarningCount + ErrorCount;
+        var title = State == RunState.Failed ? (restore ? L.T("A restauração não terminou") : L.T("O backup não terminou"))
+            : issues > 0 ? (restore ? L.F("Restauração concluída com {0} avisos", issues) : L.F("Backup concluído com {0} avisos", issues))
+            : restore ? L.T("Restauração concluída") : L.T("Backup concluído");
         var body = Spec.IsRestore
             ? (RebootRequired ? L.T("Reinicie o computador para terminar.") : L.T("Drivers instalados."))
             : L.F("{0} salvos em {1}", Sys.Bytes(StoredBytes), Spec.Destination) + (IntegrityOk && Spec.VerifyHash ? L.T(" · integridade conferida") : "");

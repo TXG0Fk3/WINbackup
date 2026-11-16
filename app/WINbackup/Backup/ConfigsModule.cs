@@ -168,6 +168,7 @@ public static partial class ConfigsModule
             catch (Exception ex)
             {
                 r.Warn($"{r.CurrentFile}: {ex.Message}");
+                r.Report(new Problem(ProblemKind.Item, r.CurrentFile, ex.Message));
             }
             r.Progress(step, (i + 1.0) / Math.Max(1, keys.Count) * 0.8);
         }
@@ -280,6 +281,7 @@ public static partial class ConfigsModule
             catch (Exception ex)
             {
                 r.Warn($"{name}: {ex.Message}");
+                r.Report(new Problem(ProblemKind.Item, name, ex.Message));
             }
             r.Progress(step, (i + 1.0) / Math.Max(1, keys.Count) * 0.7);
         }

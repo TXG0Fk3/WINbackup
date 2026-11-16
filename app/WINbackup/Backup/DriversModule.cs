@@ -116,7 +116,10 @@ public static class DriversModule
             }
             else
             {
-                r.Warn(L.F("Driver não exportado: {0} ({1}), código {2}. {3}", d.Device, d.Inf, code, output.LastOrDefault()));
+                var why = L.F("Driver não exportado: {0} ({1}), código {2}. {3}", d.Device, d.Inf, code, output.LastOrDefault());
+                r.Warn(why);
+                r.Report(new Problem(ProblemKind.Driver, $"{d.Device} ({d.Inf})", why, To: target,
+                    Command: $"pnputil /export-driver {d.Inf} \"{target}\""));
             }
             r.Progress(step, (i + 1.0) / chosen.Count);
         }
@@ -223,6 +226,8 @@ public static class DriversModule
                 default:
                     r.Step(install, StepState.Warning, L.F("Terminou com código {0}", code));
                     r.Warn(L.F("O PnPUtil terminou com o código {0}. Veja o log para os detalhes.", code));
+                    r.Report(new Problem(ProblemKind.Driver, L.T("Instalar drivers (PnPUtil)"), L.F("O PnPUtil terminou com o código {0}. Veja o log para os detalhes.", code),
+                        From: folder, Command: $"pnputil /add-driver \"{Path.Combine(folder, "*.inf")}\" /subdirs /install"));
                     r.Modules.Add(new ModuleResult(L.T("Drivers"), L.F("PnPUtil terminou com o código {0}", code), StepState.Warning));
                     break;
             }
