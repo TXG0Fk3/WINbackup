@@ -118,7 +118,7 @@ public static class RestoreModule
                 foreach (var e in src.Manifest.Files.Where(x => x.Folder == f.Key))
                 {
                     if (src.Files != null && !src.Files.Contains(f.Key + "|" + e.Path)) continue;
-                    work.Add(new Work(e, Path.Combine(destRoot, e.Stored), Path.Combine(target, e.Path), src.Conflict ?? spec.Conflict));
+                    work.Add(new Work(e, StoredFiles.Path(destRoot, e.Stored), Path.Combine(target, e.Path), src.Conflict ?? spec.Conflict));
                 }
                 if (src.Files == null)
                     emptyDirs.AddRange(src.Manifest.EmptyFolders.Where(d => d.Folder == f.Key).Select(d => Path.Combine(target, d.Path)));

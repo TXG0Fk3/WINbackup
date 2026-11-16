@@ -164,7 +164,7 @@ public sealed partial class WizardPage : Page
         if (root == null)
         {
             await Dialogs.InfoAsync(XamlRoot, L.T("Backup não encontrado"),
-                L.T("Nenhum backup do WINbackup nesta pasta. Escolha a pasta que tem as pastas WINbackup_[data] (ou o próprio HD do backup)."));
+                L.T("Nenhum backup do WINbackup nesta pasta. Escolha a pasta do backup (a que tem o arquivo manifest.json), a pasta onde ele está ou o próprio HD."));
             return;
         }
         Settings.Data.RestoreFrom = root;

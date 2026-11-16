@@ -86,7 +86,7 @@ public static class FilesModule
                 }
                 var entry = new ManifestFile { Folder = folder.Key, Path = rel, Size = file.Length, Modified = file.LastWriteTimeUtc };
                 if (previous.TryGetValue(file.FullName, out var old) && old.Size == entry.Size && old.Modified == entry.Modified &&
-                    File.Exists(Path.Combine(spec.Destination, old.Stored)))
+                    File.Exists(StoredFiles.Path(spec.Destination, old.Stored)))
                 {
                     entry.Stored = old.Stored;
                     entry.Sha256 = old.Sha256;

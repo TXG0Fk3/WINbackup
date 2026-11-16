@@ -43,11 +43,7 @@ public sealed partial class HomePage : Page
             : L.F("Último backup: {0:g} · {1}", VersionDate(last), Path.GetPathRoot(folder!) ?? "");
     }
 
-    public static DateTime? VersionDate(string versionPath)
-    {
-        var name = Path.GetFileName(versionPath).Replace("WINbackup_", "");
-        return DateTime.TryParseExact(name, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var d) ? d : null;
-    }
+    public static DateTime? VersionDate(string versionPath) => Destinations.VersionDate(versionPath);
 
     async void OnBackup(object sender, RoutedEventArgs e)
     {

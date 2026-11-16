@@ -53,7 +53,7 @@ public static class Cli
         }
         else if (Get("--restore") is { } from)
         {
-            var plan = RestorePlan.Latest(from);
+            var plan = RestorePlan.Latest(Destinations.BackupRoot(from) ?? from);
             if (plan.Empty) { Fail(L.F("Nenhum backup do WINbackup em {0}.", from)); return true; }
             spec = new JobSpec
             {

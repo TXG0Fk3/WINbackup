@@ -466,6 +466,7 @@
  "Nenhum aviso nesta execução.": "No warnings in this run.",
  "Nenhum backup do WINbackup em {0}.": "No WINbackup backup in {0}.",
  "Nenhum backup do WINbackup nesta pasta.": "No WINbackup backup in this folder.",
+ "Nenhum backup do WINbackup nesta pasta. Escolha a pasta do backup (a que tem o arquivo manifest.json), a pasta onde ele está ou o próprio HD.": "No WINbackup backup in this folder. Choose the backup folder (the one with the manifest.json file), the folder it is in or the drive itself.",
  "Nenhum backup do WINbackup nesta pasta. Escolha a pasta que tem as pastas WINbackup_[data] (ou o próprio HD do backup).": "No WINbackup backup in this folder. Choose the folder that has the WINbackup_[date] folders (or the backup drive itself).",
  "Nenhum backup encontrado em ": "No backup found in ",
  "Nenhum backup encontrado. Conecte o HD do backup ou escolha a pasta.": "No backup found. Connect the backup drive or choose the folder.",

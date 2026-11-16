@@ -27,10 +27,10 @@ public static class Retention
             if (group.FirstOrDefault(v => v.M!.Kind == "Completo") is { Name: { } full }) kept.Add(full);
         }
 
-        // Versões das quais as mantidas dependem
+        // Versões das quais as mantidas dependem (pelo nome original: a pasta pode ter sido renomeada)
         foreach (var v in versions.Where(v => kept.Contains(v.Name)).ToList())
-            foreach (var f in v.M!.Files)
-                kept.Add(f.Stored.Split('\\')[0]);
+            foreach (var name in v.M!.Files.Select(f => f.Stored.Split('\\')[0]).Distinct(StringComparer.OrdinalIgnoreCase))
+                kept.Add(System.IO.Path.GetFileName(StoredFiles.VersionFolder(destination, name) ?? name));
 
         return versions.Where(v => !kept.Contains(v.Name)).Select(v => (v.Path, v.Name)).ToList();
     }

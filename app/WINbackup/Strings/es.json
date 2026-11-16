@@ -404,6 +404,7 @@
  "Nenhum aviso nesta execução.": "Ningún aviso en esta ejecución.",
  "Nenhum backup do WINbackup em {0}.": "No hay ninguna copia de WINbackup en {0}.",
  "Nenhum backup do WINbackup nesta pasta.": "No hay ninguna copia de WINbackup en esta carpeta.",
+ "Nenhum backup do WINbackup nesta pasta. Escolha a pasta do backup (a que tem o arquivo manifest.json), a pasta onde ele está ou o próprio HD.": "No hay ninguna copia de WINbackup en esta carpeta. Elige la carpeta de la copia (la que tiene el archivo manifest.json), la carpeta donde está o el propio disco.",
  "Nenhum backup do WINbackup nesta pasta. Escolha a pasta que tem as pastas WINbackup_[data] (ou o próprio HD do backup).": "No hay ninguna copia de WINbackup en esta carpeta. Elige la carpeta que tiene las carpetas WINbackup_[fecha] (o el propio disco de la copia).",
  "Nenhum backup encontrado em ": "No se encontró ninguna copia en ",
  "Nenhum backup encontrado. Conecte o HD do backup ou escolha a pasta.": "No se encontró ninguna copia. Conecta el disco de la copia o elige la carpeta.",

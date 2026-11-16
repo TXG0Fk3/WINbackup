@@ -13,6 +13,8 @@ public class Manifest
     public int Format { get; set; } = 1;
     public string App { get; set; } = "WINbackup 0.3 beta";
     public DateTime CreatedAt { get; set; }
+    /// <summary>Nome da pasta da versão quando foi criada. Os Files[].Stored começam por ele, mesmo que a pasta seja renomeada.</summary>
+    public string Name { get; set; } = "";
     public string Title { get; set; } = "";
     public string Kind { get; set; } = "Completo";
     public string Computer { get; set; } = Environment.MachineName;
@@ -36,6 +38,13 @@ public class Manifest
     public int HashMismatches { get; set; }
 
     static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
+
+    /// <summary>Nomes que a pasta desta versão pode ter tido ao ser criada (manifestos antigos não guardavam o nome).</summary>
+    public IEnumerable<string> OriginalNames()
+    {
+        if (Name.Length > 0) yield return Name;
+        yield return "WINbackup_" + CreatedAt.ToString("yyyy-MM-dd_HH-mm-ss");
+    }
 
     public void Save(string versionPath) =>
         File.WriteAllText(Path.Combine(versionPath, FileName), JsonSerializer.Serialize(this, Json));

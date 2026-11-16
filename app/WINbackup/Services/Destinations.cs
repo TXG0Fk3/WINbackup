@@ -84,11 +84,10 @@ public static partial class Destinations
     public static string? BackupRoot(string? path)
     {
         if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return null;
+        // Uma versão escolhida direto (com qualquer nome): a pasta de backups é a de cima
+        if (IsVersion(path) && System.IO.Path.GetDirectoryName(path.TrimEnd('\\')) is { } parent) return parent;
         if (Versions(path).Count > 0) return path;
-        var name = System.IO.Path.GetFileName(path.TrimEnd('\\'));
-        if (name.StartsWith("WINbackup_", StringComparison.OrdinalIgnoreCase) && System.IO.Path.GetDirectoryName(path.TrimEnd('\\')) is { } parent)
-            return parent;
-        return Subdirs(path).Where(d => Versions(d).Count > 0).OrderByDescending(Newest, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+        return Subdirs(path).Where(d => Versions(d).Count > 0).OrderByDescending(Newest).FirstOrDefault();
     }
 
     /// <summary>Procura backups nos discos conectados (raiz e um nível abaixo); devolve a pasta com a versão mais nova.</summary>
@@ -106,14 +105,14 @@ public static partial class Destinations
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
-        return roots.Where(r => Versions(r).Count > 0).OrderByDescending(Newest, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+        return roots.Where(r => Versions(r).Count > 0).OrderByDescending(Newest).FirstOrDefault();
     }
 
     /// <summary>De onde restaurar: a pasta escolhida em Restaurar backup, o destino dos backups ou o que achar nos discos.</summary>
     public static string? RestoreFolder() =>
         BackupRoot(Settings.Data.RestoreFrom) ?? BackupRoot(Settings.Data.Destination) ?? FindBackups();
 
-    static string Newest(string root) => Versions(root).Select(v => System.IO.Path.GetFileName(v)).FirstOrDefault() ?? "";
+    static DateTime Newest(string root) => Versions(root).Select(VersionDate).FirstOrDefault() ?? DateTime.MinValue;
 
     static string[] Subdirs(string path)
     {
@@ -121,14 +120,39 @@ public static partial class Destinations
         catch (Exception) { return []; }
     }
 
-    /// <summary>Pastas de versão (WINbackup_*) no destino atual, da mais nova para a mais antiga.</summary>
+    /// <summary>Pasta de uma versão: tem o manifest.json do WINbackup ou o nome WINbackup_* (versão cancelada pode não ter manifesto).</summary>
+    public static bool IsVersion(string path) =>
+        File.Exists(System.IO.Path.Combine(path, Backup.Manifest.FileName)) ||
+        System.IO.Path.GetFileName(path.TrimEnd('\\')).StartsWith("WINbackup_", StringComparison.OrdinalIgnoreCase);
+
+    static readonly Dictionary<string, (DateTime Stamp, DateTime? Date)> Dates = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Data da versão: pelo nome WINbackup_AAAA-MM-DD_HH-MM-SS ou, se a pasta foi renomeada, pelo manifesto.</summary>
+    public static DateTime? VersionDate(string versionPath)
+    {
+        var name = System.IO.Path.GetFileName(versionPath.TrimEnd('\\')).Replace("WINbackup_", "");
+        if (DateTime.TryParseExact(name, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var d)) return d;
+        var file = System.IO.Path.Combine(versionPath, Backup.Manifest.FileName);
+        if (!File.Exists(file)) return null;
+        var stamp = File.GetLastWriteTimeUtc(file);
+        lock (Dates)
+        {
+            if (Dates.TryGetValue(versionPath, out var hit) && hit.Stamp == stamp) return hit.Date;
+            var date = Backup.Manifest.Load(versionPath)?.CreatedAt;
+            Dates[versionPath] = (stamp, date);
+            return date;
+        }
+    }
+
+    /// <summary>Pastas de versão no destino (qualquer nome, ver IsVersion), da mais nova para a mais antiga.</summary>
     public static List<string> Versions(string? dest = null)
     {
         dest ??= Settings.Data.Destination;
         try
         {
             if (string.IsNullOrEmpty(dest) || !Directory.Exists(dest)) return new();
-            return Directory.GetDirectories(dest, "WINbackup_*").OrderByDescending(d => d, StringComparer.OrdinalIgnoreCase).ToList();
+            return Directory.GetDirectories(dest).Where(IsVersion)
+                .OrderByDescending(v => VersionDate(v) ?? DateTime.MinValue).ThenByDescending(v => v, StringComparer.OrdinalIgnoreCase).ToList();
         }
         catch (Exception)
         {

@@ -324,7 +324,7 @@ public sealed class BackupRunner
         Info(L.F("{0} · destino {1}", L.T(Spec.Title), VersionPath));
         if (!Sys.IsAdmin) Warn(L.T("O app não está rodando como administrador: alguns arquivos e os drivers podem falhar."));
 
-        var manifest = new Manifest { CreatedAt = StartedAt, Title = Spec.Title };
+        var manifest = new Manifest { CreatedAt = StartedAt, Name = Path.GetFileName(VersionPath), Title = Spec.Title };
         manifest.Save(VersionPath);
 
         if (_files != null)
