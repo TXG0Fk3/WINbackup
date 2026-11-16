@@ -97,7 +97,7 @@
     <td align="center" width="33%">
       <img src="docs/img/icons/restore.svg" width="56" alt=""><br>
       <b>3. Restaure tudo</b><br>
-      <sub>Abra o WINbackup no Windows novo e use o modo Pós-formatação.</sub>
+      <sub>Abra o WINbackup no Windows novo e clique em Restaurar backup: ele acha o HD sozinho.</sub>
     </td>
   </tr>
 </table>
@@ -113,7 +113,7 @@
 | <img src="docs/img/icons/configs.svg" width="32" alt=""><br>**Configurações** | Redes Wi-Fi, tema e papel de parede, impressoras, fontes, variáveis de ambiente e hosts, mais Terminal, PowerShell, VS Code, Git e outros |
 | <img src="docs/img/icons/games.svg" width="32" alt=""><br>**Saves de jogos** | My Games, Saved Games, jogos Unreal e Unity, Steam Cloud e Ubisoft |
 | <img src="docs/img/icons/drivers.svg" width="32" alt=""><br>**Drivers** | Exporta os drivers de terceiros com PnPUtil e reinstala depois |
-| <img src="docs/img/icons/restore.svg" width="32" alt=""><br>**Restaurar** | Escolha a versão e o que trazer de volta (pastas ou arquivos soltos), para o lugar original, outro usuário ou outra pasta |
+| <img src="docs/img/icons/restore.svg" width="32" alt=""><br>**Restaurar backup** | Acha o backup sozinho no HD conectado e devolve drivers, programas, configurações, arquivos e navegadores na ordem certa. Você escolhe quais etapas entram |
 | <img src="docs/img/icons/schedule.svg" width="32" alt=""><br>**Agendamentos** | Backups automáticos pelo Agendador de Tarefas do Windows |
 | <img src="docs/img/icons/terminal.svg" width="32" alt=""><br>**Linha de comando** | Tudo também roda pelo terminal, para scripts e automações |
 | <img src="docs/img/icons/configs.svg" width="32" alt=""><br>**Temas e idiomas** | Português, inglês e espanhol. Temas WINchester (o padrão), escuro, escuro OLED e claro, em Opções |
@@ -127,11 +127,8 @@
     <td width="50%"><img src="docs/img/creators.png" alt="Criadores"><p align="center"><sub><b>Criadores</b>: presets e plugins de Adobe, DaVinci, OBS e outros</sub></p></td>
   </tr>
   <tr>
-    <td><img src="docs/img/restore.png" alt="Restaurar backup"><p align="center"><sub><b>Restaurar</b>: escolha a versão e o que trazer de volta</sub></p></td>
-    <td><img src="docs/img/wizard.png" alt="Modo pós-formatação"><p align="center"><sub><b>Pós-formatação</b>: deixa o PC como estava, na ordem certa</sub></p></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center"><img src="docs/img/games.png" alt="Saves de jogos" width="50%"><p align="center"><sub><b>Saves de jogos</b>: encontra o progresso dos seus jogos</sub></p></td>
+    <td><img src="docs/img/restore.png" alt="Restaurar backup"><p align="center"><sub><b>Restaurar backup</b>: acha o backup e deixa o PC como estava, na ordem certa</sub></p></td>
+    <td><img src="docs/img/games.png" alt="Saves de jogos"><p align="center"><sub><b>Saves de jogos</b>: encontra o progresso dos seus jogos</sub></p></td>
   </tr>
 </table>
 
@@ -148,7 +145,7 @@
 > [!NOTE]
 > O Windows pode mostrar **"O Windows protegeu o computador"** porque o app ainda não tem assinatura digital. Clique em **Mais informações → Executar assim mesmo**.
 
-**Primeiro teste seguro:** escolha um destino vazio (pendrive ou pasta de teste), faça backup de uma pasta pequena e restaure em **Restaurar → Outra pasta**.
+**Primeiro teste seguro:** escolha um destino vazio (pendrive ou pasta de teste), faça o backup só de **Arquivos pessoais**, apague um arquivo de teste e use **Restaurar backup** deixando ligada só a etapa de arquivos: ele volta sem mexer no que já existe.
 
 **Requisitos:** Windows 10 (2004) ou 11, 64 bits. Precisa rodar como administrador (para drivers e Shadow Copy).
 

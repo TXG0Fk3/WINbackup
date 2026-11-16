@@ -9,7 +9,7 @@
         <StackPanel Spacing="20" Padding="36,28,36,36">
             <StackPanel Spacing="4">
                 <TextBlock Text="{s:T K='ACABEI DE FORMATAR'}" FontSize="12" FontWeight="Bold" CharacterSpacing="100" Foreground="{StaticResource Neon}"/>
-                <TextBlock Text="{s:T K='Modo pós-formatação'}" Style="{StaticResource H1}"/>
+                <TextBlock Text="{s:T K='Restaurar backup'}" Style="{StaticResource H1}"/>
                 <TextBlock Text="{s:T K='Deixa o PC como estava, numa ordem pensada para não dar conflito. Você pode sair e voltar depois.'}" Style="{StaticResource Sub}"/>
             </StackPanel>
 
@@ -18,7 +18,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <c:Icon Width="20" Height="20" Foreground="{StaticResource Neon}" Data="M3 13h18v7H3zM5 13 7.5 5h9L19 13" VerticalAlignment="Center"/>
                     <TextBlock x:Name="FoundText" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                    <Button Grid.Column="2" Style="{StaticResource LinkButton}" Content="{s:T K='Trocar'}" Click="OnChange"/>
+                    <Button Grid.Column="2" Style="{StaticResource SmallButton}" Content="{s:T K='Escolher pasta…'}" Click="OnChange"/>
                 </Grid>
             </Border>
 

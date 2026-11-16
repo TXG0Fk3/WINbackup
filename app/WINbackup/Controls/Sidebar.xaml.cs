@@ -24,10 +24,6 @@ public sealed partial class Sidebar : UserControl
             new("configs", L.T("Configurações"), Icons.Configs), new("games", L.T("Saves de jogos"), Icons.Games),
             new("drivers", L.T("Drivers"), Icons.Drivers), new("browsers", L.T("Navegadores"), Icons.Browsers),
         ]),
-        new("restaurar", L.T("Restaurar"), Icons.Restore,
-        [
-            new("restore", L.T("Restaurar backup"), Icons.Restore), new("wizard", L.T("Pós-formatação"), Icons.Wizard),
-        ]),
         new("auto", L.T("Painel"), Icons.Gauge,
         [
             new("activity", L.T("Atividade"), Icons.Activity), new("schedule", L.T("Agendamentos"), Icons.Clock),
@@ -63,6 +59,7 @@ public sealed partial class Sidebar : UserControl
     {
         NavPanel.Children.Clear();
         NavPanel.Children.Add(NavButton("home", L.T("Início"), Icons.Home, top: true));
+        NavPanel.Children.Add(NavButton("restore", L.T("Restaurar backup"), Icons.Restore, top: true));
         foreach (var g in Groups)
         {
             var hasActive = g.Items.Any(i => i.Key == _active);

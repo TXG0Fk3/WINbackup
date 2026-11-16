@@ -35,11 +35,12 @@ public sealed partial class HomePage : Page
     void Refresh()
     {
         BackupSub.Text = L.F("Preset: {0}", Presets.All[Settings.Data.Preset].Label);
-        var last = Destinations.Versions().FirstOrDefault();
-        var root = Path.GetPathRoot(Settings.Data.Destination) ?? "";
+        // Sem procurar nos discos aqui (é lento): a tela Restaurar backup faz isso
+        var folder = Destinations.BackupRoot(Settings.Data.RestoreFrom) ?? Destinations.BackupRoot(Settings.Data.Destination);
+        var last = folder == null ? null : Destinations.Versions(folder).FirstOrDefault();
         RestoreSub.Text = last == null
-            ? L.T("Nenhum backup no destino ainda")
-            : L.F("Último backup: {0:g} · {1}", VersionDate(last), root);
+            ? L.T("Depois de formatar: acha o backup e deixa o PC como estava")
+            : L.F("Último backup: {0:g} · {1}", VersionDate(last), Path.GetPathRoot(folder!) ?? "");
     }
 
     public static DateTime? VersionDate(string versionPath)
@@ -105,6 +106,6 @@ public sealed partial class HomePage : Page
         return g;
     }
 
-    void OnRestore(object sender, RoutedEventArgs e) => App.Shell.Navigate("wizard");
+    void OnRestore(object sender, RoutedEventArgs e) => App.Shell.Navigate("restore");
     void OnManagePresets(object sender, RoutedEventArgs e) => App.Shell.Navigate("schedule");
 }

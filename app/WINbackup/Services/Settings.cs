@@ -5,6 +5,8 @@ namespace WINbackup.Services;
 public class SettingsData
 {
     public string Destination { get; set; } = "";
+    /// <summary>Pasta de backups escolhida em Restaurar backup (vazia = usar o destino ou procurar nos discos).</summary>
+    public string RestoreFrom { get; set; } = "";
     public int Preset { get; set; }
 
     // Arquivos pessoais

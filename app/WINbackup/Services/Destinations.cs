@@ -17,7 +17,7 @@ public static partial class Destinations
             try
             {
                 if (!d.IsReady || string.Equals(d.Name, system, StringComparison.OrdinalIgnoreCase)) continue;
-                if (d.DriveType is not (DriveType.Fixed or DriveType.Removable or DriveType.Network)) continue;
+                if (d.DriveType is not (DriveType.Fixed or DriveType.Removable)) continue;
                 list.Add(new DestOption(LabelFor(d), System.IO.Path.Combine(d.Name, "Backup"),
                     d.DriveType == DriveType.Network ? Icons.Network : Icons.Drive));
             }
@@ -76,6 +76,50 @@ public static partial class Destinations
     [LibraryImport("kernel32.dll", EntryPoint = "GetDiskFreeSpaceExW", StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetDiskFreeSpaceEx(string dir, out ulong freeForCaller, out ulong total, out ulong totalFree);
+
+    /// <summary>
+    /// Pasta com versões (WINbackup_*) a partir de um caminho escolhido: a própria pasta, a pasta acima de uma versão
+    /// ou uma subpasta logo abaixo (escolher E:\ acha E:\Backup). Null se não houver backup.
+    /// </summary>
+    public static string? BackupRoot(string? path)
+    {
+        if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return null;
+        if (Versions(path).Count > 0) return path;
+        var name = System.IO.Path.GetFileName(path.TrimEnd('\\'));
+        if (name.StartsWith("WINbackup_", StringComparison.OrdinalIgnoreCase) && System.IO.Path.GetDirectoryName(path.TrimEnd('\\')) is { } parent)
+            return parent;
+        return Subdirs(path).Where(d => Versions(d).Count > 0).OrderByDescending(Newest, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+    }
+
+    /// <summary>Procura backups nos discos conectados (raiz e um nível abaixo); devolve a pasta com a versão mais nova.</summary>
+    public static string? FindBackups()
+    {
+        var roots = new List<string>();
+        foreach (var d in DriveInfo.GetDrives())
+        {
+            try
+            {
+                if (!d.IsReady || d.DriveType is not (DriveType.Fixed or DriveType.Removable or DriveType.Network)) continue;
+                roots.Add(d.RootDirectory.FullName);
+                roots.AddRange(Subdirs(d.RootDirectory.FullName));
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+        return roots.Where(r => Versions(r).Count > 0).OrderByDescending(Newest, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+    }
+
+    /// <summary>De onde restaurar: a pasta escolhida em Restaurar backup, o destino dos backups ou o que achar nos discos.</summary>
+    public static string? RestoreFolder() =>
+        BackupRoot(Settings.Data.RestoreFrom) ?? BackupRoot(Settings.Data.Destination) ?? FindBackups();
+
+    static string Newest(string root) => Versions(root).Select(v => System.IO.Path.GetFileName(v)).FirstOrDefault() ?? "";
+
+    static string[] Subdirs(string path)
+    {
+        try { return Directory.GetDirectories(path); }
+        catch (Exception) { return []; }
+    }
 
     /// <summary>Pastas de versão (WINbackup_*) no destino atual, da mais nova para a mais antiga.</summary>
     public static List<string> Versions(string? dest = null)

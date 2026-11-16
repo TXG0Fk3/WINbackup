@@ -26,8 +26,7 @@ WinUI 3 + .NET 10 (C#), Windows App SDK 2.5, autocontido (não precisa instalar 
 | Atividade | Último backup e destino reais |
 | Opções | SHA-256 e notificações valem; o resto marcado "Em breve" |
 
-| Restaurar backup | Versões reais do destino, conteúdo por grupo e pasta, busca de arquivos soltos; restaura para os locais originais (Documentos, Imagens etc. vão para onde essas pastas estão hoje, inclusive OneDrive), para outro usuário ou para outra pasta; Pular / Substituir / Manter os dois; confere SHA-256; drivers primeiro |
-| Pós-formatação | Pega a versão mais recente de drivers, Criadores e arquivos e restaura nessa ordem. Configs de programas substituem as padrão; arquivos pessoais nunca são sobrescritos. Pede para reiniciar no fim se os drivers precisarem (a menos que "Não reiniciar" esteja ligado) |
+| Restaurar backup | Acha os backups sozinho (a pasta escolhida antes, o destino dos backups ou os discos conectados, na raiz e um nível abaixo). Pega a versão mais recente de drivers, Criadores e arquivos e restaura nessa ordem. Configs de programas substituem as padrão; arquivos pessoais nunca são sobrescritos. Pede para reiniciar no fim se os drivers precisarem (a menos que "Não reiniciar" esteja ligado) |
 
 **Ainda não implementado:** criptografia 7z AES-256 (aparece como "Em breve" em Opções).
 

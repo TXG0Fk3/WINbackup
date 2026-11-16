@@ -10,7 +10,10 @@ using WINbackup.Services;
 
 namespace WINbackup.Pages;
 
-/// <summary>Assistente pós-formatação: restaura, em ordem, o mais recente de cada parte do backup.</summary>
+/// <summary>
+/// Restaurar backup (pós-formatação): restaura, em ordem, o mais recente de cada parte do backup. Acha a pasta
+/// sozinho (a escolhida antes, o destino dos backups ou os discos conectados) ou pela escolha do usuário.
+/// </summary>
 public sealed partial class WizardPage : Page
 {
     record Step(string Key, string Name, string Desc);
@@ -25,18 +28,14 @@ public sealed partial class WizardPage : Page
         new("nav", L.T("Navegadores"), L.T("Favoritos, configurações e perfis")),
     ];
 
-    readonly RestorePlan _plan = RestorePlan.Latest(Settings.Data.Destination);
-    readonly Dictionary<string, bool> _on;
+    RestorePlan _plan = new();
+    Dictionary<string, bool> _on = new();
 
     public WizardPage()
     {
         InitializeComponent();
         Responsive.StackWhenNarrow(MainGrid, 960);
-        _on = Steps.ToDictionary(s => s.Key, s => Part(s.Key) != null);
-
-        var dest = string.IsNullOrEmpty(Settings.Data.Destination) ? L.T("[destino]") : Settings.Data.Destination;
-        FoundText.Inlines.Add(new Run { Text = _plan.Empty ? L.T("Nenhum backup encontrado em ") : L.T("Backups encontrados em ") });
-        FoundText.Inlines.Add(new Run { Text = dest, FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["Mono"], FontWeight = FontWeights.SemiBold });
+        Load(Destinations.RestoreFolder());
 
         NotifyEnd.IsOn = true;
         NoReboot.Toggled += async (row, on) =>
@@ -45,6 +44,23 @@ public sealed partial class WizardPage : Page
             Build();
         };
         Build();
+    }
+
+    /// <summary>Lê os backups da pasta e refaz a lista de etapas.</summary>
+    void Load(string? folder)
+    {
+        _plan = folder == null ? new RestorePlan() : RestorePlan.Latest(folder);
+        _on = Steps.ToDictionary(s => s.Key, s => Part(s.Key) != null);
+        FoundText.Inlines.Clear();
+        if (folder == null || _plan.Empty)
+        {
+            FoundText.Inlines.Add(new Run { Text = L.T("Nenhum backup encontrado. Conecte o HD do backup ou escolha a pasta.") });
+        }
+        else
+        {
+            FoundText.Inlines.Add(new Run { Text = L.T("Backups encontrados em ") });
+            FoundText.Inlines.Add(new Run { Text = folder, FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["Mono"], FontWeight = FontWeights.SemiBold });
+        }
     }
 
     RestorePlan.Part? Part(string key) => key switch
@@ -140,7 +156,22 @@ public sealed partial class WizardPage : Page
         return ts.TotalHours >= 1 ? L.F("~{0} h {1:00} min", (int)ts.TotalHours, ts.Minutes) : L.F("~{0} min", Math.Ceiling(ts.TotalMinutes));
     }
 
-    void OnChange(object sender, RoutedEventArgs e) => App.Shell.Navigate("restore");
+    async void OnChange(object sender, RoutedEventArgs e)
+    {
+        var picked = FileDialog.PickFolder(L.T("Pasta onde estão os backups"));
+        if (picked == null) return;
+        var root = Destinations.BackupRoot(picked);
+        if (root == null)
+        {
+            await Dialogs.InfoAsync(XamlRoot, L.T("Backup não encontrado"),
+                L.T("Nenhum backup do WINbackup nesta pasta. Escolha a pasta que tem as pastas WINbackup_[data] (ou o próprio HD do backup)."));
+            return;
+        }
+        Settings.Data.RestoreFrom = root;
+        Settings.Save();
+        Load(root);
+        Build();
+    }
     void OnCancel(object sender, RoutedEventArgs e) => App.Shell.Navigate("home");
 
     async void OnStart(object sender, RoutedEventArgs e)
@@ -148,7 +179,7 @@ public sealed partial class WizardPage : Page
         var sources = _plan.Sources(_on["drv"], _on["apps"], _on["win"], _on["cfg"], _on["files"], _on["nav"]);
         if (sources.Count == 0)
         {
-            await Dialogs.InfoAsync(XamlRoot, L.T("Nada para restaurar"), L.T("Nenhuma etapa disponível está ligada. Confira o destino dos backups no menu lateral."));
+            await Dialogs.InfoAsync(XamlRoot, L.T("Nada para restaurar"), L.T("Nenhuma etapa disponível está ligada. Conecte o HD do backup ou escolha a pasta onde ele está."));
             return;
         }
         if (!Silent.IsOn)
