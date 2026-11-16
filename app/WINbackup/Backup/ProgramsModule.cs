@@ -202,6 +202,15 @@ public static class ProgramsModule
         return list;
     }
 
+    /// <summary>
+    /// O próprio winget ("Instalador de Aplicativo"): já vem no Windows, e reinstalá-lo no meio da lista troca o
+    /// winget.exe enquanto ele está em uso, e os programas seguintes não instalam.
+    /// </summary>
+    static readonly HashSet<string> WingetItself = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Microsoft.AppInstaller", "Microsoft.DesktopAppInstaller", "9NBLGGH4NNS1",
+    };
+
     /// <summary>Instala um pacote por vez: dá progresso real e o resultado de cada programa.</summary>
     public static async Task InstallAsync(BackupRunner r, StepItem step, List<(string Id, string Name, string Source)> packages, string? manualList, CancellationToken token)
     {
@@ -222,10 +231,38 @@ public static class ProgramsModule
             var (id, name, source) = packages[i];
             r.CurrentFile = name;
             r.Step(step, StepState.Running, L.F("Instalando {0} de {1}…", i + 1, packages.Count));
+            if (WingetItself.Contains(id))
+            {
+                already++;
+                r.Info(L.F("Pulado: {0} (é o próprio winget e já vem com o Windows)", name));
+                r.Progress(step, (i + 1.0) / packages.Count);
+                continue;
+            }
             var output = new List<string>();
-            var code = await Proc.RunAsync(winget,
-                $"install --id \"{id}\" --exact --source {source} --accept-package-agreements --accept-source-agreements --disable-interactivity --silent",
-                output.Add, token, Encoding.UTF8);
+            var args = $"install --id \"{id}\" --exact --source {source} --accept-package-agreements --accept-source-agreements --disable-interactivity --silent";
+            int code;
+            try
+            {
+                code = await Proc.RunAsync(winget, args, output.Add, token, Encoding.UTF8);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // O winget pode ficar inacessível por alguns segundos (atualização do Instalador de Aplicativo): espera e tenta de novo
+                await Task.Delay(TimeSpan.FromSeconds(10), token);
+                try
+                {
+                    winget = Proc.Winget() ?? winget;
+                    output.Clear();
+                    code = await Proc.RunAsync(winget, args, output.Add, token, Encoding.UTF8);
+                }
+                catch (Exception again) when (again is not OperationCanceledException)
+                {
+                    failed++;
+                    r.Warn(L.F("Não instalou {0} ({1}): o winget não abriu ({2})", name, id, again.Message));
+                    r.Progress(step, (i + 1.0) / packages.Count);
+                    continue;
+                }
+            }
             if (code == 0) { ok++; r.Ok(L.F("Instalado: {0}", name)); }
             else if (code is AlreadyInstalled or NoApplicableUpgrade) { already++; r.Info(L.F("Já instalado: {0}", name)); }
             else
@@ -237,7 +274,7 @@ public static class ProgramsModule
         }
 
         r.ItemsSaved += ok;
-        var status = $"{ok} instalados" + (already > 0 ? L.F(" · {0} já estavam", already) : "") + (failed > 0 ? L.F(" · {0} com erro", failed) : "");
+        var status = L.F("{0} instalados", ok) + (already > 0 ? L.F(" · {0} já estavam", already) : "") + (failed > 0 ? L.F(" · {0} com erro", failed) : "");
         r.Step(step, failed > 0 ? StepState.Warning : StepState.Done, status);
         r.Ok(L.F("Programas: {0}", status));
         if (manualList != null)

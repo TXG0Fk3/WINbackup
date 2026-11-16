@@ -75,6 +75,22 @@ public static class RestoreModule
             : path;
     }
 
+    /// <summary>Uma etapa que falha não derruba as outras: registra o erro e a restauração segue.</summary>
+    static async Task Isolated(BackupRunner r, StepItem step, string what, Func<Task> body)
+    {
+        try
+        {
+            await body();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            CrashLog.Write(ex);
+            r.Step(step, StepState.Error, L.T("Falhou"));
+            r.Error(L.F("{0}: falha inesperada ({1}). As outras etapas continuam.", what, ex.Message));
+            r.Modules.Add(new ModuleResult(what, L.T("Falhou"), StepState.Error));
+        }
+    }
+
     public static async Task RunAsync(BackupRunner r, StepItem? filesStep, StepItem? prep, StepItem? install, StepItem? programsStep, StepItem? windowsStep, CancellationToken token)
     {
         await Task.Yield();
@@ -87,21 +103,21 @@ public static class RestoreModule
             var zip = Path.Combine(src.VersionPath, "Drivers_Backup.zip");
             var path = Directory.Exists(folder) ? folder : File.Exists(zip) ? zip : null;
             if (path == null || prep == null || install == null) continue;
-            await DriversModule.RestoreAsync(r, prep, install, path, token);
+            await Isolated(r, install, L.T("Drivers"), () => DriversModule.RestoreAsync(r, prep, install, path, token));
             break;
         }
         // Depois os programas: as configurações dos apps precisam deles instalados
         if (programsStep != null)
         {
             if (spec.InstallPackages != null)
-                await ProgramsModule.InstallAsync(r, programsStep, spec.InstallPackages, null, token);
+                await Isolated(r, programsStep, L.T("Programas"), () => ProgramsModule.InstallAsync(r, programsStep, spec.InstallPackages, null, token));
             else if (spec.RestoreSources.FirstOrDefault(s => s.Programs) is { } ps)
-                await ProgramsModule.InstallAsync(r, programsStep,
+                await Isolated(r, programsStep, L.T("Programas"), () => ProgramsModule.InstallAsync(r, programsStep,
                     ps.Manifest.Programs.Where(p => p.Source is "winget" or "msstore").Select(p => (p.Id, p.Name, p.Source)).ToList(),
-                    ProgramsModule.ManualListPath(ps.VersionPath), token);
+                    ProgramsModule.ManualListPath(ps.VersionPath), token));
         }
         if (windowsStep != null && spec.RestoreSources.FirstOrDefault(s => s.WindowsSettings) is { } ws)
-            await ConfigsModule.RestoreWindowsAsync(r, windowsStep, ws.VersionPath, ws.Manifest, token);
+            await Isolated(r, windowsStep, L.T("Configurações do Windows"), () => ConfigsModule.RestoreWindowsAsync(r, windowsStep, ws.VersionPath, ws.Manifest, token));
         if (filesStep == null) return;
 
         // 1. Plano

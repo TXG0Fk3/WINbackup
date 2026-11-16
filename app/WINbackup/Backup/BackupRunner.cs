@@ -369,7 +369,7 @@ public sealed class BackupRunner
     {
         var stamp = StartedAt.ToString("yyyy-MM-dd_HH-mm-ss");
         OpenLog(Path.Combine(Settings.Folder, "logs", $"restaurar_{stamp}.log"));
-        foreach (var s in Spec.RestoreSources) Info(L.F("Restaurando de {0}", s.VersionPath));
+        foreach (var path in Spec.RestoreSources.Select(s => s.VersionPath).Distinct(StringComparer.OrdinalIgnoreCase)) Info(L.F("Restaurando de {0}", path));
         Info(Spec.Target switch
         {
             RestoreTarget.Folder => L.F("Destino: outra pasta ({0})", Spec.TargetPath),
