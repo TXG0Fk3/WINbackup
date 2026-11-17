@@ -8,6 +8,15 @@ public class SettingsData
     /// <summary>Pasta de backups escolhida em Restaurar backup (vazia = usar o destino ou procurar nos discos).</summary>
     public string RestoreFrom { get; set; } = "";
     public int Preset { get; set; }
+    /// <summary>Presets marcados no Início (Ctrl + clique marca mais de um); vazio = só o Preset.</summary>
+    public List<int> Presets { get; set; } = new();
+
+    /// <summary>Presets marcados, válidos e em ordem (sempre pelo menos um).</summary>
+    public List<int> ChosenPresets()
+    {
+        var list = Presets.Where(i => i >= 0 && i < Backup.Presets.All.Length).Distinct().Order().ToList();
+        return list.Count > 0 ? list : [Math.Clamp(Preset, 0, Backup.Presets.All.Length - 1)];
+    }
 
     // Arquivos pessoais
     public string FilesMode { get; set; } = "C";

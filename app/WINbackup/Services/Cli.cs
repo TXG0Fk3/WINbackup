@@ -6,7 +6,7 @@ namespace WINbackup.Services;
 /// Linha de comando (também usada pelos agendamentos):
 ///   WINbackup.exe --preset completo [--dest E:\Backup] [--full] [--silent]
 ///   WINbackup.exe --only files,apps,configs,games,browsers,creators,drivers [--dest E:\Backup] [--silent]
-///   WINbackup.exe --restore E:\Backup [--postformat] [--no-reboot] [--silent]
+///   WINbackup.exe --restore E:\Backup [--postformat] [--no-reboot] [--keep-browsers] [--silent]
 ///   WINbackup.exe --schedule &lt;id&gt;   (tarefas do Agendador)
 ///   WINbackup.exe --remind            (lembrete de 30 dias sem backup)
 /// Códigos de saída: 0 ok, 1 terminou com erros, 2 argumentos inválidos, 3 já há uma tarefa rodando.
@@ -58,7 +58,7 @@ public static class Cli
             spec = new JobSpec
             {
                 Kind = JobKind.Restore, Title = "Pós-formatação", RestoreSources = plan.Sources(),
-                Target = RestoreTarget.Original, Conflict = ConflictMode.Skip, NoReboot = Has("--no-reboot"),
+                Target = RestoreTarget.Original, Conflict = ConflictMode.Skip, NoReboot = Has("--no-reboot"), KeepBrowsersOpen = Has("--keep-browsers"),
             };
         }
         else

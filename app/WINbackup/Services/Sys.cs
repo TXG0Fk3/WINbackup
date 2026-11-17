@@ -88,8 +88,9 @@ public static class CrashLog
     {
         try
         {
-            Directory.CreateDirectory(Settings.Folder);
-            File.AppendAllText(Path.Combine(Settings.Folder, "erros.log"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n");
+            var dir = Backup.BackupRunner.AppLogs;
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "erros.log"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n");
         }
         catch { }
     }

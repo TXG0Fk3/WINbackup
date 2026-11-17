@@ -1,4 +1,4 @@
-# WINbackup 0.3.2 (beta): app para Windows
+# WINbackup 0.4.0 (beta): app para Windows
 
 App do **Canal WINchester** feito a partir do protótipo em [`../interface`](../interface/HANDOFF.md).
 WinUI 3 + .NET 10 (C#), Windows App SDK 2.5, autocontido (não precisa instalar nada no PC formatado) e roda como Administrador.
@@ -7,16 +7,16 @@ WinUI 3 + .NET 10 (C#), Windows App SDK 2.5, autocontido (não precisa instalar 
 
 | Tela | Situação |
 |---|---|
-| Início | Presets, confirmação antes de começar, último backup lido do destino |
+| Início | Presets (Ctrl + clique marca mais de um e o backup junta todos numa execução), confirmação antes de começar, último backup lido do destino; no fim do backup, lembrete das senhas e janela para abrir as listas de programas fora do winget e de extensões |
 | Arquivos pessoais | Pastas do usuário + pastas personalizadas, detecção do OneDrive, exclusões, estimativa de tamanho x espaço livre, **incremental**, **Shadow Copy (VSS)** para arquivos em uso, permissões (ACL), **SHA-256** |
 | Criadores | Detecta Adobe (Premiere, After Effects, Photoshop, Illustrator, Lightroom, Media Encoder, .mogrt, painéis CEP), DaVinci Resolve, OBS, Stream Deck, Elgato, Streamer.bot, Voicemeeter, NVIDIA Broadcast, Reaper, Blender, Cinema 4D e outros; copia presets, workspaces, scripts, macros e, se ligado, as pastas de plugins (AE, MediaCore, OFX, Photoshop, OBS, VST). Catálogo em `Backup/CreatorApps.cs` |
 | Apoie o projeto | Pix com QR Code e "copia e cola" (BR Code gerado no app) e LivePix; lembrete a cada 5 backups bem-sucedidos, com "não mostrar de novo" |
 | Programas | Lista real do `winget list` (winget, Microsoft Store, sem pacote); salva `Programas\Programas.json` (formato do `winget import`, só os marcados) e `Instalar_manualmente.html` com os sem pacote; reinstala um por um com `winget install` (os já instalados são pulados); "Exportar lista" e "Importar lista e instalar" avulsos |
-| Navegadores | Perfis reais de Edge, Chrome, Brave, Vivaldi, Opera (via `Local State`) e Firefox (via `profiles.ini`); copia favoritos, configurações e notas (Chromium) ou favoritos, preferências e extensões (Firefox), mais a lista de perfis; gera `Navegadores\Extensoes.html` com link da loja de cada extensão; senhas só por exportação guiada (abre a página do navegador como usuário comum, via Explorer) e o .csv que o usuário adicionar |
-| Configurações | Windows: Wi-Fi (`netsh wlan export`, com senha como administrador), tema e papel de parede, impressoras (PrintBrm), fontes do usuário, variáveis de ambiente e hosts, exportados para `Configuracoes\Windows` e reaplicados na restauração (reg import ajustando a pasta do usuário). Apps: Windows Terminal, PowerShell, VS Code (com lista de extensões), Git, Notepad++, PowerToys, Komorebi, YASB, AutoHotkey, Rainmeter |
+| Navegadores | Perfis reais de Edge, Chrome, Brave, Vivaldi, Opera (via `Local State`), Firefox e Zen Browser (via `profiles.ini`; no Zen também espaços de trabalho, abas fixadas, mods e atalhos); copia favoritos, configurações e notas (Chromium) ou favoritos, preferências e extensões (Firefox), mais a lista de perfis; gera `Navegadores\Extensoes.html` com link da loja de cada extensão; senhas só por exportação guiada (abre o navegador como usuário comum, via Explorer, e digita o endereço da página de senhas, que Edge/Chrome não aceitam vindo de outro programa); "aberto" = com janela (processos em segundo plano não contam); na restauração fecha o navegador por completo antes e reabre no fim, a menos que "Não reiniciar os navegadores" esteja ligado e o .csv que o usuário adicionar |
+| Configurações | Windows: Wi-Fi (`netsh wlan export`, com senha como administrador), tema e papel de parede, impressoras (PrintBrm), fontes do usuário, variáveis de ambiente, hosts e mods do Windhawk (`windhawk-cli data export/import`, Windhawk 2.0+), exportados para `Configuracoes\Windows` e reaplicados na restauração (reg import ajustando a pasta do usuário). Apps: Windows Terminal, PowerShell, VS Code (com lista de extensões), Git, Notepad++, PowerToys, Komorebi, YASB, AutoHotkey, Rainmeter |
 | Saves de jogos | My Games, Saved Games, pastas de estúdios em Documentos, Unreal (`Saved\SaveGames`), Unity (`LocalLow`), Steam Cloud (nome pelo appmanifest) e Ubisoft; guarda as bibliotecas da Steam |
 | Agendamentos | Tarefas no Agendador do Windows (`\WINbackup`): por horário, ao conectar o disco (evento Partition/Diagnostic 1006, disco reconhecido pelo ID do volume) ou ao entrar; acordar o PC, só na tomada, incremental |
-| Linha de comando | `--preset`, `--only`, `--restore [--postformat] [--no-reboot]`, `--silent`, `--schedule`, `--remind`; um backup por vez (trava em `executando.lock`) |
+| Linha de comando | `--preset`, `--only`, `--restore [--postformat] [--no-reboot] [--keep-browsers]`, `--silent`, `--schedule`, `--remind`; um backup por vez (trava em `executando.lock`) |
 | Opções | SHA-256, notificações, lembrete de 30 dias (ao abrir o app e, se ligado como administrador, ao entrar no Windows), modo portátil (`portable.txt` ao lado do .exe guarda tudo em `Dados\`) e "Criar versão portátil no pendrive" |
 | Retenção | Mantém as últimas N versões de cada tipo de backup; nunca apaga o último completo nem versões das quais as mantidas dependem |
 | Drivers | Lista real (WMI), exporta com `pnputil /export-driver` para a pasta `Drivers` (sem compactar); restaura da pasta, de outra pasta com .inf ou de `.zip` com `pnputil /add-driver /install` |
@@ -44,11 +44,11 @@ Dados de doação (Pix e LivePix) ficam em `Services/Donation.cs`.
   Criadores\<Programa>\...      presets, configs e plugins de cada programa
   Programas\Programas.json      lista para o winget import
   Programas\Instalar_manualmente.html   os sem pacote, com link de busca
-  Configuracoes\Windows\         Wi-Fi, .reg do tema/fontes/variáveis, hosts, impressoras, papel de parede
+  Configuracoes\Windows\         Wi-Fi, .reg do tema/fontes/variáveis, hosts, impressoras, papel de parede, windhawk.json
   Configurações\<App>\  Saves de jogos\<Jogo>\  Navegadores\<Navegador>\   pastas copiadas
   Drivers\oemNN_<dispositivo>\  pacotes .inf exportados + drivers.json
   manifest.json                 tudo o que a versão contém
-  backup_audit_<data>.log       log da execução
+  Logsackup_audit_<data>.log  log da execução (e problemas_<data>.txt, se algo deu errado)
   relatorio.html                (se exportado)
 ```
 

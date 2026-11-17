@@ -46,6 +46,8 @@ public sealed partial class BrowsersPage : Page
 
     void Place(int cols)
     {
+        while (Cards.RowDefinitions.Count < (Cards.Children.Count + cols - 1) / cols)
+            Cards.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         Cards.ColumnDefinitions[2].Width = cols == 3 ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
         for (var i = 0; i < Cards.Children.Count; i++)
         {
@@ -188,7 +190,17 @@ public sealed partial class BrowsersPage : Page
             await Dialogs.InfoAsync(XamlRoot, L.T("Navegador não encontrado"), L.F("Abra o {0} e digite na barra de endereço: {1}", b.Name, b.PasswordUrl));
             return;
         }
-        try { ShellLauncher.Run(exe, b.PasswordUrl); }
+        try
+        {
+            // O Firefox aceita about:logins direto; os baseados no Chromium só abrem uma Nova guia com edge:// e chrome://
+            if (b.Firefox) { ShellLauncher.Run(exe, b.PasswordUrl); return; }
+            if (await AddressBar.OpenAsync(exe, b.Process, b.PasswordUrl)) return;
+            var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+            dp.SetText(b.PasswordUrl);
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+            await Dialogs.InfoAsync(XamlRoot, L.T("Cole o endereço no navegador"),
+                L.F("O {0} não deixa outro programa abrir a página de senhas. O endereço {1} foi copiado: clique na barra de endereço, cole com Ctrl+V e aperte Enter.", b.Name, b.PasswordUrl));
+        }
         catch (Exception ex) { await Dialogs.InfoAsync(XamlRoot, L.T("Não foi possível abrir"), ex.Message); }
     }
 

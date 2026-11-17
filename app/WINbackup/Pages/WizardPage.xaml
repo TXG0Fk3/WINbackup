@@ -32,6 +32,7 @@
                         <StackPanel Spacing="14">
                             <TextBlock Text="{s:T K='Como executar'}" Style="{StaticResource CardTitle}"/>
                             <c:ToggleRow x:Name="NoReboot" Title="{s:T K='Não reiniciar o computador'}" Description="{s:T K='Instala os drivers sem reiniciar no meio da restauração'}" Danger="True"/>
+                            <c:ToggleRow x:Name="KeepBrowsers" Title="{s:T K='Não reiniciar os navegadores'}" Description="{s:T K='Restaura com os navegadores abertos, sem fechá-los antes'}" Danger="True"/>
                             <c:ToggleRow x:Name="Silent" Title="{s:T K='Sem perguntas'}" Description="{s:T K='Usa as respostas padrão em todos os conflitos'}"/>
                             <c:ToggleRow x:Name="NotifyEnd" Title="{s:T K='Avisar quando terminar'}" Description="{s:T K='Notificação do Windows com o resumo'}"/>
                         </StackPanel>

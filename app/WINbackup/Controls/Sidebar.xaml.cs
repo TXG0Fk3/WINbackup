@@ -205,6 +205,12 @@ public sealed partial class Sidebar : UserControl
     void OnOptions(object sender, RoutedEventArgs e) => Navigate?.Invoke("options");
     void OnDonate(object sender, RoutedEventArgs e) => Navigate?.Invoke("donate");
 
-    // Link do vídeo ainda a definir (HANDOFF, pendências): por enquanto abre o canal
-    void OnYouTube(object sender, RoutedEventArgs e) => Sys.Open("https://www.youtube.com/WINchesterCanal");
+    /// <summary>Abre duas abas: o vídeo tutorial e o canal já com o pedido de inscrição (sub_confirmation).</summary>
+    async void OnYouTube(object sender, RoutedEventArgs e)
+    {
+        Sys.Open("https://youtu.be/S2JT3MSmC94");
+        // Um intervalo para o navegador abrir as abas nesta ordem (a segunda fica na frente)
+        await Task.Delay(1200);
+        Sys.Open("https://www.youtube.com/winchestercanal?sub_confirmation=1");
+    }
 }

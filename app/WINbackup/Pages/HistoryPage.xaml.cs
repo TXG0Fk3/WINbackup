@@ -86,10 +86,11 @@ public sealed partial class HistoryPage : Page
     void LoadLog()
     {
         _logFile = Destinations.Versions()
-            .Select(v => Directory.EnumerateFiles(v, "backup_audit_*.log").FirstOrDefault())
+            .Select(v => new[] { Path.Combine(v, BackupRunner.LogsFolder), v }.Where(Directory.Exists)   // backups antigos: log na raiz
+                .SelectMany(d => Directory.EnumerateFiles(d, "backup_audit_*.log")).FirstOrDefault())
             .FirstOrDefault(f => f != null);
-        var logsDir = Path.Combine(Settings.Folder, "logs");
-        var restoreLog = Directory.Exists(logsDir) ? Directory.GetFiles(logsDir, "*.log").OrderByDescending(f => f).FirstOrDefault() : null;
+        var logsDir = BackupRunner.AppLogs;
+        var restoreLog = Directory.Exists(logsDir) ? Directory.GetFiles(logsDir, "restaurar*.log").OrderByDescending(f => f).FirstOrDefault() : null;
         if (restoreLog != null && (_logFile == null || File.GetLastWriteTime(restoreLog) > File.GetLastWriteTime(_logFile))) _logFile = restoreLog;
 
         if (_logFile == null)

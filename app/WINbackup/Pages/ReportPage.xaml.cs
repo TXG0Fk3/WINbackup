@@ -30,6 +30,7 @@ public sealed partial class ReportPage : Page
         Loaded += async (_, _) =>
         {
             await MaybeAskRebootAsync(_r);
+            await BackupRemindersAsync(_r);
             await MaybeRemindDonationAsync(_r);
         };
     }
@@ -43,9 +44,29 @@ public sealed partial class ReportPage : Page
         OnReboot(this, new RoutedEventArgs());
     }
 
+    /// <summary>
+    /// Fim do backup (uma vez por execução): lembrete das senhas, se o backup incluiu navegadores, e a janela
+    /// para abrir as listas do que reinstalar à mão (programas sem winget e extensões).
+    /// </summary>
+    async Task BackupRemindersAsync(BackupRunner r)
+    {
+        if (r.EndDialogsShown || r.Spec.Kind != JobKind.Backup || r.State == RunState.Canceled || !Directory.Exists(r.VersionPath)) return;
+        r.EndDialogsShown = true;
+        await Task.Delay(400);
+        var exportNow = r.Spec.Browsers && await Dialogs.PasswordReminderAsync(XamlRoot, r.Spec.Folders.Any(f => f.Group.EndsWith("Senhas")));
+        var lists = new List<(string, string, string)>();
+        if (ProgramsModule.ManualListPath(r.VersionPath) is { } manual)
+            lists.Add((L.T("Programas fora do winget"), L.T("Não têm pacote no winget: a lista traz um link para procurar o download de cada um."), manual));
+        var ext = Path.Combine(r.VersionPath, "Navegadores", "Extensoes.html");
+        if (File.Exists(ext))
+            lists.Add((L.T("Extensões dos navegadores"), L.T("Com o link da loja de cada extensão, por navegador e perfil."), ext));
+        if (lists.Count > 0) await Dialogs.OpenListsAsync(XamlRoot, lists);
+        if (exportNow) App.Shell.Navigate("browsers");
+    }
+
     async Task MaybeRemindDonationAsync(BackupRunner r)
     {
-        if (r.CountedForDonation || r.State != RunState.Completed || r.ErrorCount > 0 || r.Spec.Kind != JobKind.Backup) return;
+        if (!IsLoaded || r.CountedForDonation || r.State != RunState.Completed || r.ErrorCount > 0 || r.Spec.Kind != JobKind.Backup) return;
         r.CountedForDonation = true;
         if (!Donation.CountSuccessAndCheckReminder()) return;
         await Task.Delay(600);

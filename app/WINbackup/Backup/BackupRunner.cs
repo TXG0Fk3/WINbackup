@@ -44,6 +44,10 @@ public sealed class BackupRunner
     public string VersionPath { get; private set; } = "";
     public string LogPath { get; private set; } = "";
 
+    /// <summary>Pasta só dos logs: "Logs" dentro do backup; restaurações e erros do app em %APPDATA%\WINbackup\logs.</summary>
+    public const string LogsFolder = "Logs";
+    public static string AppLogs => Path.Combine(Settings.Folder, "logs");
+
     // Lidos pela interface a cada atualização
     public volatile string Activity = L.T("Preparando…");
     public volatile string CurrentFile = "";
@@ -63,6 +67,8 @@ public sealed class BackupRunner
     /// <summary>Já contou para o lembrete de doação (o relatório pode ser aberto mais de uma vez).</summary>
     public bool CountedForDonation;
     public bool RebootAsked;
+    /// <summary>Já mostrou o lembrete das senhas e as listas do fim do backup.</summary>
+    public bool EndDialogsShown;
 
     public event Action? StateChanged;
 
@@ -228,7 +234,7 @@ public sealed class BackupRunner
         if (count == 0) return;
         try
         {
-            var dir = Directory.Exists(VersionPath) ? VersionPath : Path.Combine(Settings.Folder, "logs");
+            var dir = Directory.Exists(VersionPath) ? Path.Combine(VersionPath, LogsFolder) : AppLogs;
             Directory.CreateDirectory(dir);
             var path = Path.Combine(dir, $"problemas_{StartedAt:yyyy-MM-dd_HH-mm-ss}.txt");
             File.WriteAllText(path, ProblemReport.Text(this), System.Text.Encoding.UTF8);
@@ -373,7 +379,7 @@ public sealed class BackupRunner
         var stamp = StartedAt.ToString("yyyy-MM-dd_HH-mm-ss");
         VersionPath = Path.Combine(Spec.Destination, "WINbackup_" + stamp);
         Directory.CreateDirectory(VersionPath);
-        OpenLog(Path.Combine(VersionPath, $"backup_audit_{stamp}.log"));
+        OpenLog(Path.Combine(VersionPath, LogsFolder, $"backup_audit_{stamp}.log"));
         Info(L.F("{0} · destino {1}", L.T(Spec.Title), VersionPath));
         if (!Sys.IsAdmin) Warn(L.T("O app não está rodando como administrador: alguns arquivos e os drivers podem falhar."));
 
@@ -425,7 +431,7 @@ public sealed class BackupRunner
     async Task RunRestoreAsync(CancellationToken token)
     {
         var stamp = StartedAt.ToString("yyyy-MM-dd_HH-mm-ss");
-        OpenLog(Path.Combine(Settings.Folder, "logs", $"restaurar_{stamp}.log"));
+        OpenLog(Path.Combine(AppLogs, $"restaurar_{stamp}.log"));
         foreach (var path in Spec.RestoreSources.Select(s => s.VersionPath).Distinct(StringComparer.OrdinalIgnoreCase)) Info(L.F("Restaurando de {0}", path));
         Info(Spec.Target switch
         {
@@ -443,7 +449,7 @@ public sealed class BackupRunner
     async Task RunRestoreDriversAsync(CancellationToken token)
     {
         var stamp = StartedAt.ToString("yyyy-MM-dd_HH-mm-ss");
-        OpenLog(Path.Combine(Settings.Folder, "logs", $"restaurar_drivers_{stamp}.log"));
+        OpenLog(Path.Combine(AppLogs, $"restaurar_drivers_{stamp}.log"));
         Info(L.F("Restaurando drivers de {0}", Spec.DriverSource));
         await DriversModule.RestoreAsync(this, _prep!, _install!, Spec.DriverSource!, token);
         Percent = 100;

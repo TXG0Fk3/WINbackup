@@ -22,7 +22,7 @@ public sealed partial class WizardPage : Page
     [
         new("drv", L.T("Drivers"), L.T("Instala os .inf de terceiros (Wi-Fi primeiro, para ter internet)")),
         new("apps", L.T("Programas"), L.T("Reinstala pelo winget + lista dos que precisam de instalação manual")),
-        new("win", L.T("Configurações do Windows"), L.T("Wi-Fi, tema, fontes, impressoras, variáveis, hosts")),
+        new("win", L.T("Configurações do Windows"), L.T("Wi-Fi, tema, fontes, impressoras, variáveis, hosts e mods do Windhawk")),
         new("cfg", L.T("Configurações de apps"), L.T("Terminal, VS Code, Git… e os presets e plugins de Criadores")),
         new("files", L.T("Arquivos pessoais e saves"), L.T("Volta para as pastas originais, incluindo o OneDrive")),
         new("nav", L.T("Navegadores"), L.T("Favoritos, configurações e perfis")),
@@ -41,6 +41,11 @@ public sealed partial class WizardPage : Page
         NoReboot.Toggled += async (row, on) =>
         {
             if (on && !await Dialogs.NoRebootAsync(XamlRoot)) row.SetQuietly(false);
+            Build();
+        };
+        KeepBrowsers.Toggled += async (row, on) =>
+        {
+            if (on && !await Dialogs.KeepBrowsersAsync(XamlRoot)) row.SetQuietly(false);
             Build();
         };
         Build();
@@ -90,10 +95,12 @@ public sealed partial class WizardPage : Page
             "drv" => (L.F("{0} drivers · {1}\n", p.M.Drivers.Count, When(p.Path)) + (NoReboot.IsOn ? L.T("sem reinício (por sua conta)") : L.T("pede para reiniciar no fim")),
                       NoReboot.IsOn ? UI.Brush("#ff8fa1") : UI.Warn),
             "apps" => (L.F("{0} programas · {1}\npela internet, via winget", p.M.Programs.Count(x => x.Source is "winget" or "msstore"), When(p.Path)), UI.Muted),
-            "win" => (L.F("{0} itens · {1}", p.M.WindowsSettings.Count, When(p.Path)), UI.Muted),
+            "win" => (L.F(p.M.WindowsSettings.Count == 1 ? "1 item · {1}" : "{0} itens · {1}", p.M.WindowsSettings.Count, When(p.Path)), UI.Muted),
             "cfg" => (L.F("{0} · {1}\nsubstitui as configs padrão", Sys.Bytes(Bytes(p)), When(p.Path)), UI.Muted),
             "files" => (L.F("{0} · {1}\npula o que já existir", Sys.Bytes(Bytes(p)), When(p.Path)), UI.Muted),
-            "nav" => (L.F("{0} perfis · {1}\nfeche os navegadores antes", p.Folders.Count(f => f.Name != "Lista de perfis" && f.Name != "Senhas exportadas"), When(p.Path)), UI.Warn),
+            "nav" => (L.F("{0} perfis · {1}\n", p.Folders.Count(f => f.Name != "Lista de perfis" && f.Name != "Senhas exportadas"), When(p.Path)) +
+                      (KeepBrowsers.IsOn ? L.T("com os navegadores abertos (por sua conta)") : L.T("fecha os navegadores e abre de novo")),
+                      KeepBrowsers.IsOn ? UI.Brush("#ff8fa1") : UI.Warn),
             _ => ("", UI.Muted),
         };
     }
@@ -190,7 +197,7 @@ public sealed partial class WizardPage : Page
             if (_on["win"] && _plan.Windows != null) parts.Add(L.T("configurações do Windows"));
             if (_on["cfg"] && _plan.Configs != null) parts.Add(L.T("configurações de apps (substituindo as padrão)"));
             if (_on["files"] && _plan.Files != null) parts.Add(L.T("arquivos e saves (sem sobrescrever)"));
-            if (_on["nav"] && _plan.Browsers != null) parts.Add(L.T("navegadores (feche-os antes)"));
+            if (_on["nav"] && _plan.Browsers != null) parts.Add(KeepBrowsers.IsOn ? L.T("navegadores (com eles abertos)") : L.T("navegadores (fechando-os antes)"));
             var ok = await Dialogs.ConfirmAsync(XamlRoot, L.T("Iniciar a restauração completa?"),
                 L.F("Vai restaurar {0} para os locais originais.", string.Join(", ", parts)) +
                 (sources.Any(x => x.Drivers) && !NoReboot.IsOn ? L.T(" No fim, o app pede para reiniciar.") : ""),
@@ -201,6 +208,7 @@ public sealed partial class WizardPage : Page
         {
             Kind = JobKind.Restore, Title = "Pós-formatação", RestoreSources = sources,
             Target = RestoreTarget.Original, Conflict = ConflictMode.Skip, NoReboot = NoReboot.IsOn,
+            KeepBrowsersOpen = KeepBrowsers.IsOn,
         });
     }
 }

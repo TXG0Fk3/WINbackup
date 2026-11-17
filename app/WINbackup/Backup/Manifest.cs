@@ -11,7 +11,7 @@ public class Manifest
     public const string FileName = "manifest.json";
 
     public int Format { get; set; } = 1;
-    public string App { get; set; } = "WINbackup 0.3.2 beta";
+    public string App { get; set; } = "WINbackup 0.4.0 beta";
     public DateTime CreatedAt { get; set; }
     /// <summary>Nome da pasta da versão quando foi criada. Os Files[].Stored começam por ele, mesmo que a pasta seja renomeada.</summary>
     public string Name { get; set; } = "";

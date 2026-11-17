@@ -105,4 +105,63 @@ public static class Dialogs
         ack.Unchecked += (_, _) => d.IsPrimaryButtonEnabled = false;
         return await d.ShowAsync() == ContentDialogResult.Primary;
     }
+
+    /// <summary>
+    /// Pop-up de risco do "Não reiniciar os navegadores": restaurar com o navegador aberto pode não funcionar
+    /// (ele regrava os arquivos ao fechar). Só confirma depois de marcar o "por minha conta".
+    /// </summary>
+    public static async Task<bool> KeepBrowsersAsync(XamlRoot root)
+    {
+        var ack = new ToggleButton { Style = S("CheckCard"), Background = UI.Brush("#0a1120"), BorderBrush = UI.Brush("#2a3b63"),
+            Content = new TextBlock { Text = L.T("Entendo os riscos e quero restaurar com os navegadores abertos, por minha conta."), FontSize = 13, TextWrapping = TextWrapping.Wrap } };
+        var body = new StackPanel { Spacing = 16 };
+        body.Children.Add(Para(L.T("Para restaurar os dados dos navegadores, o recomendado é que eles estejam fechados. Aberto, o navegador mantém os arquivos do perfil em uso e, ao fechar, grava por cima: favoritos e configurações restaurados podem se perder.")));
+        body.Children.Add(Para(L.T("Por padrão o WINbackup fecha os navegadores (inclusive os que ficam rodando em segundo plano) e abre de novo no fim. Com esta opção eles ficam como estão."), muted: true));
+        body.Children.Add(ack);
+
+        var d = Base(root, L.T("Fechar os navegadores é recomendado"), body, L.T("Não reiniciar os navegadores"), L.T("Manter recomendado"), warn: true);
+        d.DefaultButton = ContentDialogButton.Close;
+        d.IsPrimaryButtonEnabled = false;
+        ack.Checked += (_, _) => d.IsPrimaryButtonEnabled = true;
+        ack.Unchecked += (_, _) => d.IsPrimaryButtonEnabled = false;
+        return await d.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    /// <summary>Fim do backup com navegadores: as senhas não entram sozinhas no backup. true = ir exportar agora.</summary>
+    public static async Task<bool> PasswordReminderAsync(XamlRoot root, bool csvIncluded)
+    {
+        var body = new StackPanel { Spacing = 14 };
+        body.Children.Add(Para(L.T("Por segurança, o WINbackup não copia as senhas salvas nos navegadores. Antes de formatar, garanta que elas não vão se perder:")));
+        body.Children.Add(Para(L.T("• exporte as senhas de cada navegador (Navegadores → Senhas: exportação guiada) e adicione o .csv ao backup;\n• ou confira se a sincronização da sua conta (Microsoft, Google, Firefox…) está ligada.")));
+        if (csvIncluded)
+            body.Children.Add(Para(L.T("Este backup já levou os .csv de senhas que você adicionou. Se exportou há muito tempo, exporte de novo para pegar as senhas novas."), muted: true));
+        var d = Base(root, L.T("Lembre-se das senhas"), body, L.T("Exportar senhas agora"), L.T("Já fiz"), warn: true);
+        return await d.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    /// <summary>Fim do backup: abrir as listas do que reinstalar à mão (cada uma no seu botão; a janela continua aberta).</summary>
+    public static async Task OpenListsAsync(XamlRoot root, IReadOnlyList<(string Label, string Hint, string Path)> lists)
+    {
+        var body = new StackPanel { Spacing = 12 };
+        body.Children.Add(Para(L.T("O backup gerou estas listas para usar depois de formatar. Quer abrir alguma agora?"), muted: true));
+        foreach (var (label, hint, path) in lists)
+        {
+            var g = new Grid { ColumnSpacing = 12, Padding = new Thickness(14, 10, 10, 10), CornerRadius = new CornerRadius(10),
+                Background = UI.Brush("#0a1120"), BorderBrush = UI.Brush("#16223d"), BorderThickness = new Thickness(1) };
+            g.ColumnDefinitions.Add(new ColumnDefinition());
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var t = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+            t.Children.Add(new TextBlock { Text = label, FontSize = 13.5, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            t.Children.Add(new TextBlock { Text = hint, FontSize = 12, Foreground = UI.Muted, TextWrapping = TextWrapping.Wrap });
+            g.Children.Add(t);
+            var open = new Button { Style = S("SmallButton"), Content = L.T("Abrir"), VerticalAlignment = VerticalAlignment.Center };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(open, L.T("Abrir") + " " + label);
+            open.Click += (_, _) => Sys.Open(path);
+            Grid.SetColumn(open, 1);
+            g.Children.Add(open);
+            body.Children.Add(g);
+        }
+        var d = Base(root, L.T("Abrir as listas do backup?"), body, L.T("Fechar"), null);
+        await d.ShowAsync();
+    }
 }

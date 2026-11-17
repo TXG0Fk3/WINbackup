@@ -44,6 +44,8 @@ public class JobSpec
     public ConflictMode Conflict { get; init; }
     /// <summary>Instala os drivers sem pedir para reiniciar no fim (padrão: pede).</summary>
     public bool NoReboot { get; init; }
+    /// <summary>Restaura os navegadores sem fechá-los antes (padrão: fecha, inclusive o que roda em segundo plano, e abre de novo no fim).</summary>
+    public bool KeepBrowsersOpen { get; init; }
 
     public bool IsRestore => Kind != JobKind.Backup;
 
@@ -113,6 +115,29 @@ public static class Presets
 
     /// <summary>Configurações do Windows marcadas na tela Configurações.</summary>
     public static List<string> WindowsKeys() => ConfigsModule.WindowsItems.Select(i => i.Key).Where(ConfigsModule.IsSelected).ToList();
+
+    /// <summary>
+    /// Vários presets numa execução só: junta as pastas (sem repetir), as etapas e as exclusões.
+    /// O título fica "Gamer + Criadores" (traduzido parte por parte na tela).
+    /// </summary>
+    public static JobSpec Build(IReadOnlyList<int> indexes, string? destination = null, bool? incremental = null)
+    {
+        if (indexes.Count == 1) return Build(indexes[0], destination, incremental);
+        var specs = indexes.Select(i => Build(i, destination, incremental)).ToList();
+        var labels = specs.Select(s => s.FilesLabel).Distinct().ToList();
+        return new JobSpec
+        {
+            Title = string.Join(" + ", indexes.Select(i => All[i].Name)),
+            FilesLabel = labels.Count == 1 ? labels[0] : "Arquivos e configurações",
+            Destination = specs[0].Destination, Incremental = specs[0].Incremental,
+            Exclusions = specs.SelectMany(s => s.Exclusions).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+            Folders = specs.SelectMany(s => s.Folders).DistinctBy(f => f.Key, StringComparer.OrdinalIgnoreCase).ToList(),
+            Drivers = specs.Any(s => s.Drivers), Programs = specs.Any(s => s.Programs),
+            Browsers = specs.Any(s => s.Browsers), Games = specs.Any(s => s.Games),
+            WindowsKeys = specs.SelectMany(s => s.WindowsKeys).Distinct().ToList(),
+            Unavailable = specs.SelectMany(s => s.Unavailable).Distinct().ToList(),
+        };
+    }
 
     /// <summary>destination/incremental: usados pelos agendamentos (disco reconhecido pelo ID, opção do agendamento).</summary>
     public static JobSpec Build(int index, string? destination = null, bool? incremental = null)

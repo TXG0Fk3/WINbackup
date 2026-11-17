@@ -103,7 +103,39 @@ public static class RestoreModule
         if (windowsStep != null && spec.RestoreSources.FirstOrDefault(s => s.WindowsSettings) is { } ws)
             await r.Isolate(windowsStep, L.T("Configurações do Windows"), () => ConfigsModule.RestoreWindowsAsync(r, windowsStep, ws.VersionPath, ws.Manifest, token));
         if (filesStep != null)
+        {
+            // Navegador aberto (ou rodando em segundo plano) segura os arquivos do perfil e grava por cima ao fechar
+            var reopen = new List<BrowserInfo>();
+            var browsers = BrowsersBeingRestored(spec);
+            if (browsers.Count > 0 && !spec.KeepBrowsersOpen)
+                await r.Isolate(null, L.T("Fechar navegadores"), async () =>
+                {
+                    foreach (var b in browsers.Where(BrowsersModule.IsRunning))
+                    {
+                        r.Activity = b.Name;
+                        if (BrowsersModule.HasWindow(b)) reopen.Add(b);
+                        r.Step(filesStep, StepState.Running, L.F("Fechando {0}…", b.Name));
+                        await BrowsersModule.CloseAsync(b, token);
+                        r.Info(BrowsersModule.IsRunning(b) ? L.F("{0} não fechou por completo", b.Name) : L.F("{0} fechado para a restauração", b.Name));
+                    }
+                });
+            else if (browsers.Count > 0 && browsers.Any(BrowsersModule.IsRunning))
+                r.Warn(L.T("Navegadores restaurados abertos, por sua escolha: se favoritos ou configurações não aparecerem, feche o navegador e restaure de novo."));
             await r.Isolate(filesStep, L.T("Arquivos"), () => RestoreFilesAsync(r, filesStep, token));
+            foreach (var b in reopen)
+                try { if (BrowsersModule.FindExe(b) is { } exe) ShellLauncher.Run(exe, ""); }
+                catch (Exception ex) { CrashLog.Write(ex); }
+        }
+    }
+
+    /// <summary>Navegadores que têm perfil nas pastas desta restauração.</summary>
+    static List<BrowserInfo> BrowsersBeingRestored(JobSpec spec)
+    {
+        var groups = spec.RestoreSources.SelectMany(s => s.Manifest.Folders.Where(f => s.Folders == null || s.Folders.Contains(f.Key)).Select(f => GroupOf(s.Manifest, f)))
+            .Where(g => g.StartsWith("Navegadores\\")).Distinct().ToList();
+        if (groups.Count == 0) return new();
+        var all = BrowsersModule.Detect();
+        return groups.Select(g => BrowsersModule.FromGroup(all, g)).OfType<BrowserInfo>().DistinctBy(b => b.Key).ToList();
     }
 
     static async Task RestoreFilesAsync(BackupRunner r, StepItem filesStep, CancellationToken token)

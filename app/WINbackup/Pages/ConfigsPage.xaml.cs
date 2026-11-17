@@ -61,6 +61,8 @@ public sealed partial class ConfigsPage : Page
             Set("wifi", wifi.Count == 1 ? L.T("1 rede") : L.F("{0} redes", wifi.Count));
             Set("print", printers.Count == 1 ? L.T("1 impressora") : L.F("{0} impressoras", printers.Count));
             Set("fonts", fonts == 1 ? L.T("1 fonte") : L.F("{0} fontes", fonts));
+            var mods = await ConfigsModule.WindhawkModCountAsync(_cts.Token);
+            Set("windhawk", mods == null ? L.T("Não instalado") : mods == 1 ? L.T("1 mod") : mods == 0 ? L.T("Detectado") : L.F("{0} mods", mods));
         }
         catch (OperationCanceledException) { }
     }

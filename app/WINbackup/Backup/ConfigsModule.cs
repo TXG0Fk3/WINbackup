@@ -23,7 +23,46 @@ public static partial class ConfigsModule
         new("fonts", "Fontes instaladas por você", "Fontes do usuário (as do Windows ficam de fora)"),
         new("env", "Variáveis de ambiente", "Do usuário, incluindo o PATH personalizado"),
         new("hosts", "Arquivo hosts", @"C:\Windows\System32\drivers\etc\hosts"),
+        new("windhawk", "Mods do Windhawk", "Mods instalados e as configurações de cada um"),
     ];
+
+    // ---------- Windhawk ----------
+
+    const string WindhawkFile = "windhawk.json";
+
+    /// <summary>windhawk-cli.exe da instalação do Windhawk (2.0 ou mais nova), ou null.</summary>
+    public static string? WindhawkCli()
+    {
+        var dirs = new List<string>();
+        foreach (var view in new[] { Microsoft.Win32.RegistryView.Registry64, Microsoft.Win32.RegistryView.Registry32 })
+            try
+            {
+                using var hklm = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, view);
+                using var key = hklm.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Windhawk");
+                if (key?.GetValue("InstallLocation") is string dir && dir.Length > 0) dirs.Add(dir.Trim('"'));
+            }
+            catch (Exception) { }
+        dirs.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Windhawk"));
+        return dirs.Select(d => Path.Combine(d, "windhawk-cli.exe")).FirstOrDefault(File.Exists);
+    }
+
+    /// <summary>Quantos mods o Windhawk tem instalados (para a tela), ou null sem Windhawk.</summary>
+    public static async Task<int?> WindhawkModCountAsync(CancellationToken token)
+    {
+        if (WindhawkCli() is not { } cli) return null;
+        var lines = new List<string>();
+        var code = await Proc.RunAsync(cli, "mod list --json", lines.Add, token, Encoding.UTF8);
+        if (code != 0) return 0;
+        try
+        {
+            var json = System.Text.Json.Nodes.JsonNode.Parse(string.Join("\n", lines));
+            // {"success":true,"data":{"mods":[…]}}
+            return (json?["data"]?["mods"] ?? json?["mods"]) is System.Text.Json.Nodes.JsonArray mods ? mods.Count : 0;
+        }
+        catch (Exception) { return 0; }
+    }
+
+    static string WindhawkImportCommand(string file) => $"& \"{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Windhawk", "windhawk-cli.exe")}\" data import \"{file}\" --yes";
 
     public record AppDef(string Key, string Name, string Note, string[] Paths, string[]? Include = null);
 
@@ -161,6 +200,15 @@ public static partial class ConfigsModule
                     case "hosts":
                         File.Copy(Hosts, Path.Combine(dir, "hosts"), true);
                         break;
+                    case "windhawk":
+                        if (WindhawkCli() is not { } cli) { r.Info(L.T("Windhawk não instalado (ou sem o windhawk-cli): mods não exportados")); continue; }
+                        var file = Path.Combine(dir, WindhawkFile);
+                        var output = new List<string>();
+                        var exit = await Proc.RunAsync(cli, $"data export --out \"{file}\" --force", output.Add, token, Encoding.UTF8);
+                        if (exit != 0 || !File.Exists(file))
+                            throw new InvalidOperationException(L.F("o windhawk-cli saiu com o código {0}: {1}", exit, string.Join(" ", output.TakeLast(2))));
+                        r.Ok(L.T("Mods e configurações do Windhawk exportados"));
+                        break;
                 }
                 done.Add(key);
             }
@@ -273,6 +321,28 @@ public static partial class ConfigsModule
                         if (File.Exists(Hosts) && File.ReadAllText(Hosts) != File.ReadAllText(saved))
                             File.Copy(Hosts, Hosts + ".antes-do-winbackup", true);
                         File.Copy(saved, Hosts, true);
+                        break;
+                    case "windhawk":
+                        var backup = Path.Combine(dir, WindhawkFile);
+                        if (!File.Exists(backup)) continue;
+                        // O Windhawk volta pela etapa Programas (winget); a importação precisa do windhawk-cli (versão 2.0 ou mais nova)
+                        if (WindhawkCli() is not { } cli)
+                        {
+                            r.Warn(L.T("Mods do Windhawk não importados: o Windhawk não está instalado (ou é uma versão sem o windhawk-cli)."));
+                            r.Report(new Problem(ProblemKind.Item, name, L.T("Instale o Windhawk 2.0 ou mais novo e importe o arquivo do backup."), backup,
+                                Command: "winget install --id RamenSoftware.Windhawk -e" + Environment.NewLine + WindhawkImportCommand(backup)));
+                            continue;
+                        }
+                        var lines = new List<string>();
+                        var imported = await Proc.RunAsync(cli, $"data import \"{backup}\" --yes", lines.Add, token, Encoding.UTF8);
+                        if (imported != 0)
+                        {
+                            r.Warn(L.F("Mods do Windhawk: o windhawk-cli saiu com o código {0}.", imported));
+                            r.Report(new Problem(ProblemKind.Item, name, string.Join(" ", lines.TakeLast(2)), backup,
+                                Command: $"& \"{cli}\" data import \"{backup}\" --yes"));
+                            continue;
+                        }
+                        r.Ok(L.T("Mods do Windhawk importados"));
                         break;
                 }
                 applied.Add(name);

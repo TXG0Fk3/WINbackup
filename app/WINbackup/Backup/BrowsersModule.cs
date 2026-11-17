@@ -11,13 +11,13 @@ namespace WINbackup.Backup;
 public record BrowserProfile(string Folder, string Name, string Account, string Path, int Extensions);
 
 public record BrowserInfo(string Key, string Name, bool Firefox, string Root, string Exe, string Process, string PasswordUrl,
-    string StoreUrl, List<BrowserProfile> Profiles)
+    string StoreUrl, List<BrowserProfile> Profiles, string[] ExtraFiles, string[] ExePaths)
 {
     public bool Installed => Profiles.Count > 0;
 }
 
 /// <summary>
-/// Navegadores: perfis do Edge, Chrome, Brave, Vivaldi, Opera e Firefox. Copia favoritos, configurações
+/// Navegadores: perfis do Edge, Chrome, Brave, Vivaldi, Opera, Firefox e Zen. Copia favoritos, configurações
 /// e (no Firefox) extensões; gera a lista de extensões com link da loja. Senhas nunca são lidas.
 /// </summary>
 public static class BrowsersModule
@@ -31,7 +31,18 @@ public static class BrowsersModule
         "handlers.json", "xulstore.json",
     ];
 
-    record Def(string Key, string Name, bool Firefox, string Root, string Exe, string Process, string PasswordUrl, string StoreUrl);
+    /// <summary>
+    /// Zen (baseado no Firefox): além do perfil do Firefox, os espaços de trabalho, abas fixadas e Essentials
+    /// (zen-sessions), a sessão, os mods (zen-themes, pasta chrome) e os atalhos.
+    /// </summary>
+    static readonly string[] ZenFiles =
+    [
+        "zen-sessions.jsonlz4", "zen-sessions-backup", "sessionstore.jsonlz4", "sessionstore-backups", "zen-themes.json", "zen-themes.css",
+        "zen-keyboard-shortcuts.json", "zen-workspaces.json", "containers.json",
+    ];
+
+    record Def(string Key, string Name, bool Firefox, string Root, string Exe, string Process, string PasswordUrl, string StoreUrl,
+        string[]? ExtraFiles = null, string[]? ExePaths = null);
 
     static readonly Def[] Defs =
     [
@@ -47,7 +58,13 @@ public static class BrowsersModule
             "opera://settings/passwords", "https://addons.opera.com/extensions/details/app_id/{0}"),
         new("firefox", "Mozilla Firefox", true, @"%APPDATA%\Mozilla\Firefox", "firefox.exe", "firefox",
             "about:logins", "https://addons.mozilla.org/firefox/addon/{0}"),
+        new("zen", "Zen Browser", true, @"%APPDATA%\zen", "zen.exe", "zen",
+            "about:logins", "https://addons.mozilla.org/firefox/addon/{0}", ZenFiles,
+            [@"%ProgramFiles%\Zen Browser\zen.exe", @"%LOCALAPPDATA%\Zen Browser\zen.exe", @"%LOCALAPPDATA%\Programs\Zen Browser\zen.exe"]),
     ];
+
+    /// <summary>Arquivos do perfil que entram no backup.</summary>
+    public static string[] ProfileFiles(BrowserInfo b) => b.Firefox ? [.. FirefoxFiles, .. b.ExtraFiles.Except(FirefoxFiles)] : ChromiumFiles;
 
     public static List<BrowserInfo> Detect() => Defs.Select(d =>
     {
@@ -60,7 +77,7 @@ public static class BrowsersModule
             else profiles = ChromiumProfiles(root);
         }
         catch (Exception ex) { CrashLog.Write(ex); }
-        return new BrowserInfo(d.Key, d.Name, d.Firefox, root, d.Exe, d.Process, d.PasswordUrl, d.StoreUrl, profiles);
+        return new BrowserInfo(d.Key, d.Name, d.Firefox, root, d.Exe, d.Process, d.PasswordUrl, d.StoreUrl, profiles, d.ExtraFiles ?? [], d.ExePaths ?? []);
     }).ToList();
 
     /// <summary>Perfis listados em "Local State" → profile.info_cache (nome e conta de cada um).</summary>
@@ -189,7 +206,7 @@ public static class BrowsersModule
             if (chosen.Count == 0) continue;
             var group = Path.Combine("Navegadores", b.Name);
             foreach (var p in chosen)
-                list.Add(new FolderSpec("browser:" + p.Path.ToLowerInvariant(), p.Folder, p.Path, false, false, group, b.Firefox ? FirefoxFiles : ChromiumFiles));
+                list.Add(new FolderSpec("browser:" + p.Path.ToLowerInvariant(), p.Folder, p.Path, false, false, group, ProfileFiles(b)));
             // Sem a lista de perfis, um "Profile 2" restaurado não aparece no navegador
             if (b.Key != "opera")
                 list.Add(new FolderSpec("browser:" + b.Root.ToLowerInvariant(), "Lista de perfis", b.Root, false, false, group,
@@ -201,8 +218,43 @@ public static class BrowsersModule
         return list;
     }
 
+    /// <summary>
+    /// Navegadores abertos, com janela. Fechar a janela no X costuma deixar o navegador rodando em segundo plano
+    /// (Inicialização turbo do Edge, apps em segundo plano do Chrome): esses processos sem janela não contam aqui.
+    /// </summary>
     public static List<string> Running(IEnumerable<BrowserInfo> browsers) =>
-        browsers.Where(b => Process.GetProcessesByName(b.Process).Length > 0).Select(b => b.Name).ToList();
+        browsers.Where(HasWindow).Select(b => b.Name).ToList();
+
+    public static bool HasWindow(BrowserInfo b)
+    {
+        var procs = Process.GetProcessesByName(b.Process);
+        try { return procs.Any(p => { try { return p.MainWindowHandle != IntPtr.Zero; } catch { return false; } }); }
+        finally { foreach (var p in procs) p.Dispose(); }
+    }
+
+    /// <summary>
+    /// Fecha o navegador por completo, incluindo os processos em segundo plano: primeiro pede para as janelas
+    /// fecharem (o navegador salva a sessão) e, depois de alguns segundos, encerra o que sobrou.
+    /// </summary>
+    public static async Task CloseAsync(BrowserInfo b, CancellationToken token)
+    {
+        foreach (var p in Process.GetProcessesByName(b.Process))
+            using (p) try { if (p.MainWindowHandle != IntPtr.Zero) p.CloseMainWindow(); } catch { }
+        for (var i = 0; i < 16 && HasWindow(b); i++) await Task.Delay(500, token);
+        await Task.Delay(1000, token);
+        foreach (var p in Process.GetProcessesByName(b.Process))
+            using (p) try { p.Kill(entireProcessTree: true); } catch { }
+        for (var i = 0; i < 20 && Process.GetProcessesByName(b.Process).Length > 0; i++) await Task.Delay(250, token);
+    }
+
+    public static bool IsRunning(BrowserInfo b) => Process.GetProcessesByName(b.Process).Length > 0;
+
+    /// <summary>Navegador dono de uma pasta do backup ("Navegadores\Google Chrome").</summary>
+    public static BrowserInfo? FromGroup(IEnumerable<BrowserInfo> browsers, string group)
+    {
+        var parts = group.Split('\\');
+        return parts.Length >= 2 && parts[0] == "Navegadores" ? browsers.FirstOrDefault(b => b.Name == parts[1]) : null;
+    }
 
     /// <summary>Navegadores\Extensoes.html: o que reinstalar, com link da loja de cada extensão.</summary>
     public static void WriteExtensionList(string versionPath, List<BrowserInfo> browsers)
@@ -241,6 +293,6 @@ public static class BrowsersModule
             using var key = hive.OpenSubKey($@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{b.Exe}");
             if (key?.GetValue(null) is string path && File.Exists(path.Trim('"'))) return path.Trim('"');
         }
-        return null;
+        return b.ExePaths.Select(Environment.ExpandEnvironmentVariables).FirstOrDefault(File.Exists);
     }
 }

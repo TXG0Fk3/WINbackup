@@ -35,7 +35,7 @@
 > 🤖 **Este aplicativo foi criado com inteligência artificial.** O código foi escrito pelo **Claude**, a IA da Anthropic, a partir do protótipo e das decisões do Canal WINchester, que orientou, revisou e testou cada etapa.
 
 > [!WARNING]
-> **Versão 0.3.2 beta, de testes.** Todos os módulos funcionam, mas ainda estamos validando em PCs diferentes. Enquanto testa, **mantenha uma cópia extra dos seus arquivos importantes** e conte pra gente o que encontrar.
+> **Versão 0.4.0 beta, de testes.** Todos os módulos funcionam, mas ainda estamos validando em PCs diferentes. Enquanto testa, **mantenha uma cópia extra dos seus arquivos importantes** e conte pra gente o que encontrar.
 
 <p align="center">
   <img src="docs/img/presets.gif" alt="Tela inicial do WINbackup alternando entre os presets" width="90%">
@@ -109,8 +109,8 @@
 | <img src="docs/img/icons/files.svg" width="32" alt=""><br>**Arquivos pessoais** | Documentos, Imagens, Área de Trabalho, Downloads e as pastas que você escolher. Detecta pastas no OneDrive e mantém as pastas vazias |
 | <img src="docs/img/icons/creators.svg" width="32" alt=""><br>**Criadores** | Presets, workspaces, scripts e plugins de Premiere, After Effects, Photoshop, Illustrator, Lightroom, DaVinci Resolve, OBS, Stream Deck, Voicemeeter, Blender e outros |
 | <img src="docs/img/icons/apps.svg" width="32" alt=""><br>**Programas** | Lista o que está instalado via winget, reinstala tudo sozinho depois de formatar e gera a lista dos que precisam ser instalados à mão |
-| <img src="docs/img/icons/browsers.svg" width="32" alt=""><br>**Navegadores** | Favoritos, configurações e perfis de Edge, Chrome, Brave, Vivaldi, Opera e Firefox, mais a lista de extensões com link da loja. Senhas: exportação guiada, o app nunca as lê |
-| <img src="docs/img/icons/configs.svg" width="32" alt=""><br>**Configurações** | Redes Wi-Fi, tema e papel de parede, impressoras, fontes, variáveis de ambiente e hosts, mais Terminal, PowerShell, VS Code, Git e outros |
+| <img src="docs/img/icons/browsers.svg" width="32" alt=""><br>**Navegadores** | Favoritos, configurações e perfis de Edge, Chrome, Brave, Vivaldi, Opera, Firefox e Zen, mais a lista de extensões com link da loja. Senhas: exportação guiada, o app nunca as lê |
+| <img src="docs/img/icons/configs.svg" width="32" alt=""><br>**Configurações** | Redes Wi-Fi, tema e papel de parede, impressoras, fontes, variáveis de ambiente, hosts e mods do Windhawk, mais Terminal, PowerShell, VS Code, Git e outros |
 | <img src="docs/img/icons/games.svg" width="32" alt=""><br>**Saves de jogos** | My Games, Saved Games, jogos Unreal e Unity, Steam Cloud e Ubisoft |
 | <img src="docs/img/icons/drivers.svg" width="32" alt=""><br>**Drivers** | Exporta os drivers de terceiros com PnPUtil e reinstala depois |
 | <img src="docs/img/icons/restore.svg" width="32" alt=""><br>**Restaurar backup** | Acha o backup sozinho no HD conectado e devolve drivers, programas, configurações, arquivos e navegadores na ordem certa. Você escolhe quais etapas entram |
@@ -135,7 +135,7 @@
 ## 📥 Baixar e testar
 
 <p align="center">
-  <a href="https://github.com/winchestercanal/WINbackup/releases"><img src="https://img.shields.io/badge/Baixar%20o%20WINbackup-0.3.2%20beta-19e3ff?labelColor=0a0f1c&style=for-the-badge" alt="Baixar o WINbackup" height="40"></a>
+  <a href="https://github.com/winchestercanal/WINbackup/releases"><img src="https://img.shields.io/badge/Baixar%20o%20WINbackup-0.4.0%20beta-19e3ff?labelColor=0a0f1c&style=for-the-badge" alt="Baixar o WINbackup" height="40"></a>
 </p>
 
 1. Em **[Releases](https://github.com/winchestercanal/WINbackup/releases)**, baixe o **`WINbackup-…-beta.exe`** da versão mais recente.

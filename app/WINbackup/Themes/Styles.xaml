@@ -530,6 +530,41 @@
         </Setter>
     </Style>
 
+    <!-- Igual ao PresetCard, mas marca mais de um (Ctrl + clique no Início) -->
+    <Style x:Key="PresetToggle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{StaticResource TextNav}"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="UseSystemFocusVisuals" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid x:Name="Root" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="12" Padding="10,14">
+                        <Border x:Name="Hover" Background="{StaticResource HoverOverlay}" Opacity="0" CornerRadius="12" Margin="-10,-14"/>
+                        <StackPanel Spacing="8" HorizontalAlignment="Center">
+                            <c:Icon x:Name="Glyph" Width="20" Height="20" Foreground="{StaticResource BlueSoft}"
+                                    Data="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
+                            <ContentPresenter x:Name="CP" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal"/>
+                                <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="Hover.Opacity" Value="0.05"/></VisualState.Setters></VisualState>
+                                <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Hover.Opacity" Value="0.09"/></VisualState.Setters></VisualState>
+                                <VisualState x:Name="Disabled"/>
+                                <VisualState x:Name="Checked"><VisualState.Setters><Setter Target="Root.Background" Value="{StaticResource SurfaceSelected}"/><Setter Target="Root.BorderBrush" Value="{StaticResource Neon}"/><Setter Target="Glyph.Foreground" Value="{StaticResource Neon}"/><Setter Target="CP.Foreground" Value="{StaticResource TextStrong}"/></VisualState.Setters></VisualState>
+                                <VisualState x:Name="CheckedPointerOver"><VisualState.Setters><Setter Target="Hover.Opacity" Value="0.05"/><Setter Target="Root.Background" Value="{StaticResource SurfaceSelected}"/><Setter Target="Root.BorderBrush" Value="{StaticResource Neon}"/><Setter Target="Glyph.Foreground" Value="{StaticResource Neon}"/><Setter Target="CP.Foreground" Value="{StaticResource TextStrong}"/></VisualState.Setters></VisualState>
+                                <VisualState x:Name="CheckedPressed"><VisualState.Setters><Setter Target="Hover.Opacity" Value="0.09"/><Setter Target="Root.Background" Value="{StaticResource SurfaceSelected}"/><Setter Target="Root.BorderBrush" Value="{StaticResource Neon}"/><Setter Target="Glyph.Foreground" Value="{StaticResource Neon}"/><Setter Target="CP.Foreground" Value="{StaticResource TextStrong}"/></VisualState.Setters></VisualState>
+                                <VisualState x:Name="CheckedDisabled"><VisualState.Setters><Setter Target="Root.Background" Value="{StaticResource SurfaceSelected}"/><Setter Target="Root.BorderBrush" Value="{StaticResource Neon}"/><Setter Target="Glyph.Foreground" Value="{StaticResource Neon}"/><Setter Target="CP.Foreground" Value="{StaticResource TextStrong}"/></VisualState.Setters></VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Cartão de escolha sem ícone (tema e idioma em Opções) -->
     <Style x:Key="ChoiceCard" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{StaticResource TextNav}"/>

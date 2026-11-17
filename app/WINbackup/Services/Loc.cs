@@ -55,7 +55,9 @@ public static class L
     }
 
     /// <summary>Traduz um texto fixo.</summary>
-    public static string T(string pt) => _map.TryGetValue(pt, out var t) && t.Length > 0 ? t : pt;
+    public static string T(string pt) => _map.TryGetValue(pt, out var t) && t.Length > 0 ? t
+        // Títulos de presets combinados ("Gamer + Criadores") ficam gravados assim no manifesto
+        : pt.Contains(" + ") ? string.Join(" + ", pt.Split(" + ").Select(T)) : pt;
 
     /// <summary>Traduz um texto com lacunas {0}, {1}… e preenche no formato do idioma.</summary>
     public static string F(string pt, params object?[] args) => string.Format(Culture, T(pt), args);

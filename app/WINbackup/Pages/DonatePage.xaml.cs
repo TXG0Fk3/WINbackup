@@ -98,5 +98,6 @@ public sealed partial class DonatePage : Page
 
     void OnLivePix(object sender, RoutedEventArgs e) => Sys.Open(Donation.LivePixUrl);
     void OnPayPal(object sender, RoutedEventArgs e) => Sys.Open(Donation.PayPalUrl);
-    void OnYouTube(object sender, RoutedEventArgs e) => Sys.Open("https://www.youtube.com/WINchesterCanal");
+    // Canal já com o pedido de inscrição
+    void OnYouTube(object sender, RoutedEventArgs e) => Sys.Open("https://www.youtube.com/winchestercanal?sub_confirmation=1");
 }
