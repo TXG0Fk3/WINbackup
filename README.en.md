@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="docs/img/banner.svg" alt="WINbackup: your data, safe" width="100%">
+  <a href="README.md"><img src="docs/img/flags/br.svg" height="14" alt=""> Português</a> &nbsp;·&nbsp; <img src="docs/img/flags/us.svg" height="14" alt=""> <b>English</b> &nbsp;·&nbsp; <a href="README.es.md"><img src="docs/img/flags/es.svg" height="14" alt=""> Español</a>
 </p>
 
 <p align="center">
-  🌐 <a href="README.md">Português</a> · <b>English</b> · <a href="README.es.md">Español</a>
+  <img src="docs/img/banner.en.svg" alt="WINbackup: your data, safe" width="100%">
 </p>
 
 <p align="center">
