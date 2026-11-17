@@ -1,0 +1,29 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Windows / .NET / WinUI 3 files
+*.cs text eol=crlf
+*.xaml text eol=crlf
+*.csproj text eol=crlf
+*.slnx text eol=crlf
+*.sln text eol=crlf
+*.props text eol=crlf
+*.targets text eol=crlf
+*.manifest text eol=crlf
+*.ps1 text eol=crlf
+
+# Scripts and docs
+*.py text eol=lf
+*.sh text eol=lf
+*.md text
+*.json text
+*.svg text
+
+# Binary files
+*.ico binary
+*.png binary
+*.gif binary
+*.jpg binary
+*.exe binary
+*.dll binary
+*.zip binary
