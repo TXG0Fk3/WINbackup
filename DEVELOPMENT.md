@@ -1,6 +1,6 @@
 # WINbackup 0.4.0 (beta): app para Windows
 
-App do **Canal WINchester** feito a partir do protótipo em [`../interface`](../interface/HANDOFF.md).
+App do **Canal WINchester** feito a partir do protótipo em [`interface`](interface/HANDOFF.md).
 WinUI 3 + .NET 10 (C#), Windows App SDK 2.5, autocontido (não precisa instalar nada no PC formatado) e roda como Administrador.
 
 ## O que já funciona de verdade
@@ -75,13 +75,13 @@ Teste sempre o pacote publicado também (`dotnet publish -c Teste … -o <pasta>
 ## Publicar um release
 
 ```powershell
-powershell -File app\tools\publish.ps1            # Release: app\publish\WINbackup-<versão>-beta.exe e -win-x64.zip
-powershell -File app\tools\publish.ps1 -Configuration Teste -Out <pasta>   # o mesmo sem pedir administrador, para testar
+powershell -File scripts\publish.ps1            # Release: publish\WINbackup-<versão>-beta.exe e -win-x64.zip
+powershell -File scripts\publish.ps1 -Configuration Teste -Out <pasta>   # o mesmo sem pedir administrador, para testar
 ```
 
 O `.exe` é um arquivo único (PublishSingleFile com IncludeAllContentForSelfExtract): na primeira execução ele se extrai numa pasta temporária. Por isso o código usa `Sys.ExeFolder` (pasta do .exe de verdade) para o `portable.txt` e a pasta `Dados`, nunca `AppContext.BaseDirectory`.
 
-Traduções novas: `python app/tools/l10n.py add arquivo.txt` (linhas `português|english|español`) e `python app/tools/l10n.py missing`.
+Traduções novas: `python scripts/l10n.py add arquivo.txt` (linhas `português|english|español`) e `python scripts/l10n.py missing`.
 
 ## Organização do código
 

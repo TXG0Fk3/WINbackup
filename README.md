@@ -180,7 +180,7 @@ Requer o SDK do .NET 10.
 dotnet publish -c Release -r win-x64 --self-contained true -o publish/WINbackup WINbackup/WINbackup.csproj
 ```
 
-Feito em **WinUI 3** (Windows App SDK) e **.NET 10**. Detalhes da arquitetura, do formato do backup e de como testar sem UAC em [`app/README.md`](app/README.md). O protótipo da interface e as decisões de design estão em [`interface/HANDOFF.md`](interface/HANDOFF.md).
+Feito em **WinUI 3** (Windows App SDK) e **.NET 10**. Detalhes da arquitetura, do formato do backup e de como testar sem UAC em [`DEVELOPMENT.md`](DEVELOPMENT.md). O protótipo da interface e as decisões de design estão em [`interface/HANDOFF.md`](interface/HANDOFF.md).
 
 </details>
 
