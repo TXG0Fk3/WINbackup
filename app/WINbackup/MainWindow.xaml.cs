@@ -59,6 +59,8 @@ public sealed partial class MainWindow : Window
         BackButton.SizeChanged += (_, _) => UpdateTitleBarRegions();
         Root.Loaded += (_, _) => UpdateTitleBarRegions();
         Root.KeyboardAccelerators.Add(BackAccelerator());
+        // Sem isto o WinUI mostra o tooltip "Alt+Esquerda" ao passar o mouse em qualquer parte da janela
+        Root.KeyboardAcceleratorPlacementMode = KeyboardAcceleratorPlacementMode.Hidden;
         // Botão "voltar" lateral do mouse
         Root.PointerPressed += (_, e) => { if (e.GetCurrentPoint(Root).Properties.IsXButton1Pressed) GoBack(); };
         Navigate("home");
