@@ -14,7 +14,8 @@ public partial class App : Application
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         // O tema dos controles nativos só pode ser escolhido antes de carregar o XAML do app
         Settings.Load();
-        RequestedTheme = Settings.Data.Theme == "light" ? ApplicationTheme.Light : ApplicationTheme.Dark;
+        RequestedTheme =
+            Settings.Data.Theme == "light" ? ApplicationTheme.Light : ApplicationTheme.Dark;
         InitializeComponent();
         UnhandledException += (_, e) => CrashLog.Write(e.Exception);
     }
@@ -25,10 +26,14 @@ public partial class App : Application
         Theme.Apply(Settings.Data.Theme);
         Shell = new MainWindow();
         Notifier.Init(WinRT.Interop.WindowNative.GetWindowHandle(Shell));
-        if (Cli.TryRun(Environment.GetCommandLineArgs().Skip(1).ToArray())) return;
+        if (Cli.TryRun(Environment.GetCommandLineArgs().Skip(1).ToArray()))
+            return;
         Shell.Activate();
         // Lembrete ao abrir o app (o agendado, ao entrar no Windows, é ligado em Opções)
         if (Settings.Data.NotifyReminder && Cli.DaysSinceLastBackup() is > 30 and var days)
-            Notifier.Show(L.F("Faz {0} dias desde o último backup", days), L.T("Que tal fazer um agora?"));
+            Notifier.Show(
+                L.F("Faz {0} dias desde o último backup", days),
+                L.T("Que tal fazer um agora?")
+            );
     }
 }

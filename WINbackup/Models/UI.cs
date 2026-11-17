@@ -12,7 +12,8 @@ public static class UI
     /// <summary>Pincel de uma cor da paleta original, já convertida para o tema atual.</summary>
     public static SolidColorBrush Brush(string hex)
     {
-        if (Cache.TryGetValue(hex, out var b)) return b;
+        if (Cache.TryGetValue(hex, out var b))
+            return b;
         b = new SolidColorBrush(Color(hex));
         Cache[hex] = b;
         return b;
@@ -24,15 +25,25 @@ public static class UI
     /// <summary>Atualiza os pincéis já criados depois de trocar o tema.</summary>
     public static void Remap()
     {
-        foreach (var (hex, b) in Cache) b.Color = Color(hex);
+        foreach (var (hex, b) in Cache)
+            b.Color = Color(hex);
     }
 
     public static Color ParseColor(string hex)
     {
         hex = hex.TrimStart('#');
         byte a = 255;
-        if (hex.Length == 8) { a = Convert.ToByte(hex[..2], 16); hex = hex[2..]; }
-        return Windows.UI.Color.FromArgb(a, Convert.ToByte(hex[..2], 16), Convert.ToByte(hex[2..4], 16), Convert.ToByte(hex[4..6], 16));
+        if (hex.Length == 8)
+        {
+            a = Convert.ToByte(hex[..2], 16);
+            hex = hex[2..];
+        }
+        return Windows.UI.Color.FromArgb(
+            a,
+            Convert.ToByte(hex[..2], 16),
+            Convert.ToByte(hex[2..4], 16),
+            Convert.ToByte(hex[4..6], 16)
+        );
     }
 
     public static SolidColorBrush Transparent => new(Colors.Transparent);

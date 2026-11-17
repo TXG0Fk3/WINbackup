@@ -5,12 +5,31 @@ using WINbackup.Services;
 
 namespace WINbackup.Backup;
 
-public enum RestoreTarget { Original, OtherUser, Folder }
-public enum ConflictMode { Skip, Overwrite, KeepBoth }
+public enum RestoreTarget
+{
+    Original,
+    OtherUser,
+    Folder,
+}
+
+public enum ConflictMode
+{
+    Skip,
+    Overwrite,
+    KeepBoth,
+}
 
 /// <summary>Uma versão e o que restaurar dela. Folders null = todas as pastas.</summary>
-public record RestoreSource(string VersionPath, Manifest Manifest, HashSet<string>? Folders, HashSet<string>? Files, bool Drivers,
-    ConflictMode? Conflict = null, bool Programs = false, bool WindowsSettings = false);
+public record RestoreSource(
+    string VersionPath,
+    Manifest Manifest,
+    HashSet<string>? Folders,
+    HashSet<string>? Files,
+    bool Drivers,
+    ConflictMode? Conflict = null,
+    bool Programs = false,
+    bool WindowsSettings = false
+);
 
 /// <summary>
 /// Restauração: copia de volta os arquivos de uma ou mais versões (seguindo os arquivos que
@@ -36,14 +55,21 @@ public static class RestoreModule
 
     static readonly Dictionary<string, string> KnownNames = new()
     {
-        ["doc"] = "Documents", ["img"] = "Pictures", ["mus"] = "Music", ["vid"] = "Videos", ["dwn"] = "Downloads", ["dsk"] = "Desktop", ["ssh"] = ".ssh",
+        ["doc"] = "Documents",
+        ["img"] = "Pictures",
+        ["mus"] = "Music",
+        ["vid"] = "Videos",
+        ["dwn"] = "Downloads",
+        ["dsk"] = "Desktop",
+        ["ssh"] = ".ssh",
     };
 
     /// <summary>Pasta do backup onde a pasta está (manifestos antigos não guardavam o grupo).</summary>
     public static string GroupOf(Manifest m, ManifestFolder f)
     {
         var sample = m.Files.FirstOrDefault(x => x.Folder == f.Key);
-        if (sample == null) return f.Group;
+        if (sample == null)
+            return f.Group;
         var parts = sample.Stored.Split('\\');
         var relParts = sample.Path.Split('\\').Length;
         // Stored = <versão>\<grupo...>\<Nome>\<rel>
@@ -51,31 +77,49 @@ public static class RestoreModule
     }
 
     /// <summary>Para onde vai a pasta, conforme o destino escolhido.</summary>
-    public static string TargetFor(Manifest m, ManifestFolder f, RestoreTarget mode, string? targetPath)
+    public static string TargetFor(
+        Manifest m,
+        ManifestFolder f,
+        RestoreTarget mode,
+        string? targetPath
+    )
     {
         switch (mode)
         {
             case RestoreTarget.Folder:
                 return Path.Combine(targetPath!, GroupOf(m, f), f.Name);
             case RestoreTarget.OtherUser:
-                if (KnownNames.TryGetValue(f.Key, out var name)) return Path.Combine(targetPath!, name);
+                if (KnownNames.TryGetValue(f.Key, out var name))
+                    return Path.Combine(targetPath!, name);
                 return Rebase(f.Source, m.UserProfile, targetPath!);
             default:
-                if (KnownFolders.TryGetValue(f.Key, out var current)) return current();
+                if (KnownFolders.TryGetValue(f.Key, out var current))
+                    return current();
                 return Rebase(f.Source, m.UserProfile, Sys.UserProfile);
         }
     }
 
     static string Rebase(string path, string oldProfile, string newProfile)
     {
-        if (string.IsNullOrEmpty(oldProfile)) return path;
+        if (string.IsNullOrEmpty(oldProfile))
+            return path;
         var old = oldProfile.TrimEnd('\\');
-        return path.StartsWith(old + "\\", StringComparison.OrdinalIgnoreCase) || string.Equals(path, old, StringComparison.OrdinalIgnoreCase)
+        return
+            path.StartsWith(old + "\\", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(path, old, StringComparison.OrdinalIgnoreCase)
             ? newProfile.TrimEnd('\\') + path[old.Length..]
             : path;
     }
 
-    public static async Task RunAsync(BackupRunner r, StepItem? filesStep, StepItem? prep, StepItem? install, StepItem? programsStep, StepItem? windowsStep, CancellationToken token)
+    public static async Task RunAsync(
+        BackupRunner r,
+        StepItem? filesStep,
+        StepItem? prep,
+        StepItem? install,
+        StepItem? programsStep,
+        StepItem? windowsStep,
+        CancellationToken token
+    )
     {
         await Task.Yield();
         var spec = r.Spec;
@@ -85,23 +129,50 @@ public static class RestoreModule
         {
             var folder = Path.Combine(src.VersionPath, "Drivers");
             var zip = Path.Combine(src.VersionPath, "Drivers_Backup.zip");
-            var path = Directory.Exists(folder) ? folder : File.Exists(zip) ? zip : null;
-            if (path == null || prep == null || install == null) continue;
-            await r.Isolate(install, L.T("Drivers"), () => DriversModule.RestoreAsync(r, prep, install, path, token));
+            var path =
+                Directory.Exists(folder) ? folder
+                : File.Exists(zip) ? zip
+                : null;
+            if (path == null || prep == null || install == null)
+                continue;
+            await r.Isolate(install, L.T("Drivers"), () =>
+                DriversModule.RestoreAsync(r, prep, install, path, token)
+            );
             break;
         }
         // Depois os programas: as configurações dos apps precisam deles instalados
         if (programsStep != null)
         {
             if (spec.InstallPackages != null)
-                await r.Isolate(programsStep, L.T("Programas"), () => ProgramsModule.InstallAsync(r, programsStep, spec.InstallPackages, null, token));
+                await r.Isolate(programsStep, L.T("Programas"), () =>
+                    ProgramsModule.InstallAsync(r, programsStep, spec.InstallPackages, null, token)
+                );
             else if (spec.RestoreSources.FirstOrDefault(s => s.Programs) is { } ps)
-                await r.Isolate(programsStep, L.T("Programas"), () => ProgramsModule.InstallAsync(r, programsStep,
-                    ps.Manifest.Programs.Where(p => p.Source is "winget" or "msstore").Select(p => (p.Id, p.Name, p.Source)).ToList(),
-                    ProgramsModule.ManualListPath(ps.VersionPath), token));
+                await r.Isolate(programsStep, L.T("Programas"), () =>
+                    ProgramsModule.InstallAsync(
+                        r,
+                        programsStep,
+                        ps.Manifest.Programs.Where(p => p.Source is "winget" or "msstore")
+                            .Select(p => (p.Id, p.Name, p.Source))
+                            .ToList(),
+                        ProgramsModule.ManualListPath(ps.VersionPath),
+                        token
+                    )
+                );
         }
-        if (windowsStep != null && spec.RestoreSources.FirstOrDefault(s => s.WindowsSettings) is { } ws)
-            await r.Isolate(windowsStep, L.T("Configurações do Windows"), () => ConfigsModule.RestoreWindowsAsync(r, windowsStep, ws.VersionPath, ws.Manifest, token));
+        if (
+            windowsStep != null
+            && spec.RestoreSources.FirstOrDefault(s => s.WindowsSettings) is { } ws
+        )
+            await r.Isolate(windowsStep, L.T("Configurações do Windows"), () =>
+                ConfigsModule.RestoreWindowsAsync(
+                    r,
+                    windowsStep,
+                    ws.VersionPath,
+                    ws.Manifest,
+                    token
+                )
+            );
         if (filesStep != null)
         {
             // Navegador aberto (ou rodando em segundo plano) segura os arquivos do perfil e grava por cima ao fechar
@@ -113,29 +184,58 @@ public static class RestoreModule
                     foreach (var b in browsers.Where(BrowsersModule.IsRunning))
                     {
                         r.Activity = b.Name;
-                        if (BrowsersModule.HasWindow(b)) reopen.Add(b);
+                        if (BrowsersModule.HasWindow(b))
+                            reopen.Add(b);
                         r.Step(filesStep, StepState.Running, L.F("Fechando {0}…", b.Name));
                         await BrowsersModule.CloseAsync(b, token);
-                        r.Info(BrowsersModule.IsRunning(b) ? L.F("{0} não fechou por completo", b.Name) : L.F("{0} fechado para a restauração", b.Name));
+                        r.Info(
+                            BrowsersModule.IsRunning(b)
+                                ? L.F("{0} não fechou por completo", b.Name)
+                                : L.F("{0} fechado para a restauração", b.Name)
+                        );
                     }
                 });
             else if (browsers.Count > 0 && browsers.Any(BrowsersModule.IsRunning))
-                r.Warn(L.T("Navegadores restaurados abertos, por sua escolha: se favoritos ou configurações não aparecerem, feche o navegador e restaure de novo."));
-            await r.Isolate(filesStep, L.T("Arquivos"), () => RestoreFilesAsync(r, filesStep, token));
+                r.Warn(
+                    L.T(
+                        "Navegadores restaurados abertos, por sua escolha: se favoritos ou configurações não aparecerem, feche o navegador e restaure de novo."
+                    )
+                );
+            await r.Isolate(filesStep, L.T("Arquivos"), () =>
+                RestoreFilesAsync(r, filesStep, token)
+            );
             foreach (var b in reopen)
-                try { if (BrowsersModule.FindExe(b) is { } exe) ShellLauncher.Run(exe, ""); }
-                catch (Exception ex) { CrashLog.Write(ex); }
+                try
+                {
+                    if (BrowsersModule.FindExe(b) is { } exe)
+                        ShellLauncher.Run(exe, "");
+                }
+                catch (Exception ex)
+                {
+                    CrashLog.Write(ex);
+                }
         }
     }
 
     /// <summary>Navegadores que têm perfil nas pastas desta restauração.</summary>
     static List<BrowserInfo> BrowsersBeingRestored(JobSpec spec)
     {
-        var groups = spec.RestoreSources.SelectMany(s => s.Manifest.Folders.Where(f => s.Folders == null || s.Folders.Contains(f.Key)).Select(f => GroupOf(s.Manifest, f)))
-            .Where(g => g.StartsWith("Navegadores\\")).Distinct().ToList();
-        if (groups.Count == 0) return new();
+        var groups = spec
+            .RestoreSources.SelectMany(s =>
+                s.Manifest.Folders.Where(f => s.Folders == null || s.Folders.Contains(f.Key))
+                    .Select(f => GroupOf(s.Manifest, f))
+            )
+            .Where(g => g.StartsWith("Navegadores\\"))
+            .Distinct()
+            .ToList();
+        if (groups.Count == 0)
+            return new();
         var all = BrowsersModule.Detect();
-        return groups.Select(g => BrowsersModule.FromGroup(all, g)).OfType<BrowserInfo>().DistinctBy(b => b.Key).ToList();
+        return groups
+            .Select(g => BrowsersModule.FromGroup(all, g))
+            .OfType<BrowserInfo>()
+            .DistinctBy(b => b.Key)
+            .ToList();
     }
 
     static async Task RestoreFilesAsync(BackupRunner r, StepItem filesStep, CancellationToken token)
@@ -151,23 +251,43 @@ public static class RestoreModule
         var emptyDirs = new List<string>();
         foreach (var src in spec.RestoreSources)
         {
-            foreach (var f in src.Manifest.Folders.Where(f => src.Folders == null || src.Folders.Contains(f.Key)))
+            foreach (
+                var f in src.Manifest.Folders.Where(f =>
+                    src.Folders == null || src.Folders.Contains(f.Key)
+                )
+            )
             {
                 var target = TargetFor(src.Manifest, f, spec.Target, spec.TargetPath);
                 foreach (var e in src.Manifest.Files.Where(x => x.Folder == f.Key))
                 {
-                    if (src.Files != null && !src.Files.Contains(f.Key + "|" + e.Path)) continue;
-                    work.Add(new Work(e, StoredFiles.Path(destRoot, e.Stored), Path.Combine(target, e.Path), src.Conflict ?? spec.Conflict));
+                    if (src.Files != null && !src.Files.Contains(f.Key + "|" + e.Path))
+                        continue;
+                    work.Add(
+                        new Work(
+                            e,
+                            StoredFiles.Path(destRoot, e.Stored),
+                            Path.Combine(target, e.Path),
+                            src.Conflict ?? spec.Conflict
+                        )
+                    );
                 }
                 if (src.Files == null)
-                    emptyDirs.AddRange(src.Manifest.EmptyFolders.Where(d => d.Folder == f.Key).Select(d => Path.Combine(target, d.Path)));
+                    emptyDirs.AddRange(
+                        src.Manifest.EmptyFolders.Where(d => d.Folder == f.Key)
+                            .Select(d => Path.Combine(target, d.Path))
+                    );
             }
         }
-        long total = work.Sum(w => w.Entry.Size), done = 0;
+        long total = work.Sum(w => w.Entry.Size),
+            done = 0;
         r.Info(L.F("{0:N0} arquivos para restaurar ({1})", work.Count, Sys.Bytes(total)));
 
         // 2. Cópia
-        int restored = 0, skipped = 0, same = 0, failed = 0, mismatch = 0;
+        int restored = 0,
+            skipped = 0,
+            same = 0,
+            failed = 0,
+            mismatch = 0;
         r.SetPhase(0, total);
         r.Step(filesStep, StepState.Running, L.T("Restaurando…"));
         foreach (var w in work)
@@ -198,9 +318,20 @@ public static class RestoreModule
                             break;
                     }
                 }
-                if (!File.Exists(w.Source)) throw new FileNotFoundException("Arquivo não encontrado no backup", w.Source);
+                if (!File.Exists(w.Source))
+                    throw new FileNotFoundException("Arquivo não encontrado no backup", w.Source);
 
-                var hash = Copy(w.Source, target, n => { fileDone += n; Advance(n); }, r, token);
+                var hash = Copy(
+                    w.Source,
+                    target,
+                    n =>
+                    {
+                        fileDone += n;
+                        Advance(n);
+                    },
+                    r,
+                    token
+                );
                 File.SetLastWriteTimeUtc(target, w.Entry.Modified);
                 if (w.Entry.Sha256 != null && hash != w.Entry.Sha256)
                 {
@@ -211,16 +342,26 @@ public static class RestoreModule
                 }
                 restored++;
             }
-            catch (OperationCanceledException) { throw; }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 failed++;
                 Advance(w.Entry.Size - fileDone);
                 var reason = ex switch
                 {
-                    FileNotFoundException or DirectoryNotFoundException when !File.Exists(w.Source) => L.F("Faltando no backup: {0}", w.Entry.Path),
+                    FileNotFoundException
+                    or DirectoryNotFoundException when !File.Exists(w.Source) => L.F(
+                        "Faltando no backup: {0}",
+                        w.Entry.Path
+                    ),
                     UnauthorizedAccessException => L.F("Sem permissão para gravar: {0}", w.Target),
-                    IOException io when (io.HResult & 0xFFFF) is 32 or 33 => L.F("Arquivo em uso no destino (feche o programa): {0}", w.Target),
+                    IOException io when (io.HResult & 0xFFFF) is 32 or 33 => L.F(
+                        "Arquivo em uso no destino (feche o programa): {0}",
+                        w.Target
+                    ),
                     _ => L.F("Não foi possível restaurar {0}: {1}", w.Entry.Path, ex.Message),
                 };
                 r.Error(reason);
@@ -228,14 +369,21 @@ public static class RestoreModule
             }
         }
         foreach (var d in emptyDirs)
-            try { Directory.CreateDirectory(d); } catch (Exception) { }
+            try
+            {
+                Directory.CreateDirectory(d);
+            }
+            catch (Exception) { }
 
         r.ItemsSaved += restored;
         r.StoredBytes += done;
         r.IntegrityOk = mismatch == 0;
         r.Integrity = mismatch == 0 ? L.T("SHA-256 OK") : $"{mismatch} divergentes";
-        var summary = $"{restored:N0} restaurados" + (same > 0 ? L.F(" · {0:N0} já iguais", same) : "") +
-                      (skipped > 0 ? L.F(" · {0:N0} pulados (já existiam)", skipped) : "") + (failed > 0 ? L.F(" · {0} com erro", failed) : "");
+        var summary =
+            $"{restored:N0} restaurados"
+            + (same > 0 ? L.F(" · {0:N0} já iguais", same) : "")
+            + (skipped > 0 ? L.F(" · {0:N0} pulados (já existiam)", skipped) : "")
+            + (failed > 0 ? L.F(" · {0} com erro", failed) : "");
         var state = failed + mismatch > 0 ? StepState.Warning : StepState.Done;
         r.Step(filesStep, state, summary);
         r.Ok(L.F("Restauração: {0}", summary));
@@ -244,10 +392,18 @@ public static class RestoreModule
         // Saves de jogos: a Steam precisa reconhecer as bibliotecas em outros discos
         foreach (var src in spec.RestoreSources)
         {
-            var games = src.Manifest.Folders.Any(f => (src.Folders == null || src.Folders.Contains(f.Key)) && GroupOf(src.Manifest, f).StartsWith("Saves de jogos"));
+            var games = src.Manifest.Folders.Any(f =>
+                (src.Folders == null || src.Folders.Contains(f.Key))
+                && GroupOf(src.Manifest, f).StartsWith("Saves de jogos")
+            );
             var extra = src.Manifest.SteamLibraries.Skip(1).ToList();
             if (games && extra.Count > 0)
-                r.Warn(L.F("Bibliotecas da Steam do PC antigo: {0}. Na Steam: Configurações → Armazenamento → Adicionar unidade.", string.Join(", ", extra)));
+                r.Warn(
+                    L.F(
+                        "Bibliotecas da Steam do PC antigo: {0}. Na Steam: Configurações → Armazenamento → Adicionar unidade.",
+                        string.Join(", ", extra)
+                    )
+                );
         }
 
         void Advance(long n)
@@ -266,19 +422,40 @@ public static class RestoreModule
         var name = Path.GetFileNameWithoutExtension(path);
         var ext = Path.GetExtension(path);
         var candidate = Path.Combine(dir, $"{name} (restaurado){ext}");
-        for (var i = 2; File.Exists(candidate); i++) candidate = Path.Combine(dir, $"{name} (restaurado {i}){ext}");
+        for (var i = 2; File.Exists(candidate); i++)
+            candidate = Path.Combine(dir, $"{name} (restaurado {i}){ext}");
         return candidate;
     }
 
-    static string Copy(string source, string target, Action<long> advance, BackupRunner r, CancellationToken token)
+    static string Copy(
+        string source,
+        string target,
+        Action<long> advance,
+        BackupRunner r,
+        CancellationToken token
+    )
     {
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-        if (File.Exists(target)) File.SetAttributes(target, FileAttributes.Normal);
+        if (File.Exists(target))
+            File.SetAttributes(target, FileAttributes.Normal);
         var buffer = ArrayPool<byte>.Shared.Rent(Buffer);
         try
         {
-            using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, Buffer, FileOptions.SequentialScan);
-            using var output = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None, Buffer);
+            using var input = new FileStream(
+                source,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                Buffer,
+                FileOptions.SequentialScan
+            );
+            using var output = new FileStream(
+                target,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                Buffer
+            );
             using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             int n;
             while ((n = input.Read(buffer, 0, Buffer)) > 0)

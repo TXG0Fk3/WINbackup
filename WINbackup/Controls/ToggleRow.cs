@@ -10,7 +10,12 @@ public sealed partial class ToggleRow : UserControl
 {
     readonly ToggleButton _switch;
     readonly TextBlock _title = new() { FontSize = 13, TextWrapping = TextWrapping.Wrap };
-    readonly TextBlock _desc = new() { FontSize = 12, Foreground = UI.Muted, TextWrapping = TextWrapping.Wrap };
+    readonly TextBlock _desc = new()
+    {
+        FontSize = 12,
+        Foreground = UI.Muted,
+        TextWrapping = TextWrapping.Wrap,
+    };
     bool _silent;
 
     public event Action<ToggleRow, bool>? Toggled;
@@ -32,23 +37,44 @@ public sealed partial class ToggleRow : UserControl
         grid.Children.Add(texts);
 
         // A linha inteira é clicável, como no protótipo
-        var hit = new Button { Style = (Style)Application.Current.Resources["RowButton"], Content = grid, Padding = new Thickness(0),
-            HorizontalContentAlignment = HorizontalAlignment.Left, IsTabStop = false };
+        var hit = new Button
+        {
+            Style = (Style)Application.Current.Resources["RowButton"],
+            Content = grid,
+            Padding = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            IsTabStop = false,
+        };
         hit.Click += (_, _) => _switch.IsChecked = !(_switch.IsChecked ?? false);
         Content = hit;
     }
 
     void Changed(bool on)
     {
-        if (!_silent) Toggled?.Invoke(this, on);
+        if (!_silent)
+            Toggled?.Invoke(this, on);
     }
 
-    public string Title { get => _title.Text; set { _title.Text = value; Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_switch, value); } }
+    public string Title
+    {
+        get => _title.Text;
+        set
+        {
+            _title.Text = value;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_switch, value);
+        }
+    }
 
     public string Description
     {
         get => _desc.Text;
-        set { _desc.Text = value; _desc.Visibility = string.IsNullOrEmpty(value) ? Visibility.Collapsed : Visibility.Visible; }
+        set
+        {
+            _desc.Text = value;
+            _desc.Visibility = string.IsNullOrEmpty(value)
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+        }
     }
 
     public bool IsOn

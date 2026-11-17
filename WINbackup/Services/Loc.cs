@@ -12,7 +12,12 @@ namespace WINbackup.Services;
 /// </summary>
 public static class L
 {
-    public static readonly (string Code, string Name)[] Languages = [("pt", "Português"), ("en", "English"), ("es", "Español")];
+    public static readonly (string Code, string Name)[] Languages =
+    [
+        ("pt", "Português"),
+        ("en", "English"),
+        ("es", "Español"),
+    ];
 
     static Dictionary<string, string> _map = new();
 
@@ -22,19 +27,28 @@ public static class L
     public static CultureInfo Culture { get; private set; } = new("pt-BR");
 
     /// <summary>Idioma do Windows, quando é um dos suportados; senão inglês.</summary>
-    public static string SystemLanguage => CultureInfo.InstalledUICulture.TwoLetterISOLanguageName switch
-    {
-        "pt" => "pt",
-        "es" => "es",
-        _ => "en",
-    };
+    public static string SystemLanguage =>
+        CultureInfo.InstalledUICulture.TwoLetterISOLanguageName switch
+        {
+            "pt" => "pt",
+            "es" => "es",
+            _ => "en",
+        };
 
     public static void Apply(string setting)
     {
         var code = setting is "pt" or "en" or "es" ? setting : SystemLanguage;
         Current = code;
-        Culture = new CultureInfo(code switch { "en" => "en-US", "es" => "es-ES", _ => "pt-BR" });
-        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture = Culture;
+        Culture = new CultureInfo(
+            code switch
+            {
+                "en" => "en-US",
+                "es" => "es-ES",
+                _ => "pt-BR",
+            }
+        );
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture =
+            Culture;
         CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = Culture;
         _map = code == "pt" ? new() : Load(code);
     }
@@ -43,8 +57,11 @@ public static class L
     {
         try
         {
-            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"WINbackup.Strings.{code}.json");
-            if (stream == null) return new();
+            using var stream = Assembly
+                .GetExecutingAssembly()
+                .GetManifestResourceStream($"WINbackup.Strings.{code}.json");
+            if (stream == null)
+                return new();
             return JsonSerializer.Deserialize<Dictionary<string, string>>(stream) ?? new();
         }
         catch (Exception ex)
@@ -55,9 +72,11 @@ public static class L
     }
 
     /// <summary>Traduz um texto fixo.</summary>
-    public static string T(string pt) => _map.TryGetValue(pt, out var t) && t.Length > 0 ? t
+    public static string T(string pt) =>
+        _map.TryGetValue(pt, out var t) && t.Length > 0 ? t
         // Títulos de presets combinados ("Gamer + Criadores") ficam gravados assim no manifesto
-        : pt.Contains(" + ") ? string.Join(" + ", pt.Split(" + ").Select(T)) : pt;
+        : pt.Contains(" + ") ? string.Join(" + ", pt.Split(" + ").Select(T))
+        : pt;
 
     /// <summary>Traduz um texto com lacunas {0}, {1}… e preenche no formato do idioma.</summary>
     public static string F(string pt, params object?[] args) => string.Format(Culture, T(pt), args);
@@ -71,5 +90,6 @@ public static class L
 public sealed class T : MarkupExtension
 {
     public string K { get; set; } = "";
+
     protected override object ProvideValue() => L.T(K);
 }

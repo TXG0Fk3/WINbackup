@@ -5,7 +5,14 @@ using WINbackup.Services;
 
 namespace WINbackup.Backup;
 
-public enum RunState { Running, Paused, Completed, Canceled, Failed }
+public enum RunState
+{
+    Running,
+    Paused,
+    Completed,
+    Canceled,
+    Failed,
+}
 
 public record ModuleResult(string Name, string Detail, StepState Level);
 
@@ -28,12 +35,15 @@ public sealed class BackupRunner
 
     public JobSpec Spec { get; }
     public ObservableCollection<StepItem> Steps { get; } = new();
+
     /// <summary>Últimas linhas do log, para a tela de progresso.</summary>
     public ObservableCollection<LogLine> Tail { get; } = new();
     public List<string> Warnings { get; } = new();
     public List<ModuleResult> Modules { get; } = new();
+
     /// <summary>Tudo o que deu errado, com caminhos e comandos (relatório e problemas_*.txt).</summary>
     public List<Problem> Problems { get; } = new();
+
     /// <summary>problemas_*.txt gravado no fim, se houve problemas.</summary>
     public string ProblemsPath { get; private set; } = "";
 
@@ -51,7 +61,9 @@ public sealed class BackupRunner
     // Lidos pela interface a cada atualização
     public volatile string Activity = L.T("Preparando…");
     public volatile string CurrentFile = "";
-    long _bytesMoved, _phaseDone, _phaseTotal;
+    long _bytesMoved,
+        _phaseDone,
+        _phaseTotal;
     public long BytesMoved => Interlocked.Read(ref _bytesMoved);
     public long PhaseDone => Interlocked.Read(ref _phaseDone);
     public long PhaseTotal => Interlocked.Read(ref _phaseTotal);
@@ -63,10 +75,13 @@ public sealed class BackupRunner
     public string Integrity = L.T("Desativada");
     public bool IntegrityOk = true;
     public bool RebootRequired;
-    public int ErrorCount, WarningCount;
+    public int ErrorCount,
+        WarningCount;
+
     /// <summary>Já contou para o lembrete de doação (o relatório pode ser aberto mais de uma vez).</summary>
     public bool CountedForDonation;
     public bool RebootAsked;
+
     /// <summary>Já mostrou o lembrete das senhas e as listas do fim do backup.</summary>
     public bool EndDialogsShown;
 
@@ -84,14 +99,23 @@ public sealed class BackupRunner
     /// <summary>Outra instância (app aberto, agendamento ou linha de comando) já está rodando uma tarefa.</summary>
     public static bool IsAnotherRunning()
     {
-        if (_lock != null) return false;
+        if (_lock != null)
+            return false;
         try
         {
             Directory.CreateDirectory(Settings.Folder);
-            using var probe = new FileStream(LockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            using var probe = new FileStream(
+                LockPath,
+                FileMode.OpenOrCreate,
+                FileAccess.ReadWrite,
+                FileShare.None
+            );
             return false;
         }
-        catch (IOException) { return true; }
+        catch (IOException)
+        {
+            return true;
+        }
     }
 
     public static BackupRunner Start(JobSpec spec)
@@ -99,9 +123,16 @@ public sealed class BackupRunner
         try
         {
             Directory.CreateDirectory(Settings.Folder);
-            _lock = new FileStream(LockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            _lock = new FileStream(
+                LockPath,
+                FileMode.OpenOrCreate,
+                FileAccess.ReadWrite,
+                FileShare.None
+            );
         }
-        catch (IOException) { /* outra instância rodando: a tarefa segue, mas o agendamento vai respeitar */ }
+        catch (IOException)
+        { /* outra instância rodando: a tarefa segue, mas o agendamento vai respeitar */
+        }
         var r = new BackupRunner(spec);
         Current = r;
         r.BuildSteps();
@@ -114,7 +145,9 @@ public sealed class BackupRunner
         get
         {
             var end = IsFinished ? EndedAt : DateTime.Now;
-            var paused = _pausedTotal + (State == RunState.Paused ? DateTime.Now - _pausedAt : TimeSpan.Zero);
+            var paused =
+                _pausedTotal
+                + (State == RunState.Paused ? DateTime.Now - _pausedAt : TimeSpan.Zero);
             return end - StartedAt - paused;
         }
     }
@@ -123,28 +156,34 @@ public sealed class BackupRunner
 
     public void Pause()
     {
-        if (State != RunState.Running) return;
+        if (State != RunState.Running)
+            return;
         _gate.Reset();
         _pausedAt = DateTime.Now;
         SetState(RunState.Paused);
         Info(L.T("Pausado pelo usuário"));
-        foreach (var s in Steps) s.Paused = true;
+        foreach (var s in Steps)
+            s.Paused = true;
     }
 
     public void Resume()
     {
-        if (State != RunState.Paused) return;
+        if (State != RunState.Paused)
+            return;
         _pausedTotal += DateTime.Now - _pausedAt;
         SetState(RunState.Running);
-        foreach (var s in Steps) s.Paused = false;
+        foreach (var s in Steps)
+            s.Paused = false;
         Info(L.T("Continuando"));
         _gate.Set();
     }
 
     public void Cancel()
     {
-        if (IsFinished) return;
-        if (State == RunState.Paused) _pausedTotal += DateTime.Now - _pausedAt;
+        if (IsFinished)
+            return;
+        if (State == RunState.Paused)
+            _pausedTotal += DateTime.Now - _pausedAt;
         _cts.Cancel();
         _gate.Set();
     }
@@ -170,40 +209,56 @@ public sealed class BackupRunner
     {
         lock (_progress)
         {
-            if (!_progress.TryGetValue(step, out var p)) return;
+            if (!_progress.TryGetValue(step, out var p))
+                return;
             _progress[step] = (p.Weight, Math.Clamp(fraction, 0, 1));
             var total = _progress.Values.Sum(v => v.Weight);
-            Percent = total <= 0 ? 0 : _progress.Values.Sum(v => v.Weight * v.Fraction) / total * 100;
+            Percent =
+                total <= 0 ? 0 : _progress.Values.Sum(v => v.Weight * v.Fraction) / total * 100;
         }
     }
 
     public void Step(StepItem step, StepState state, string status)
     {
-        if (state is StepState.Done or StepState.Warning or StepState.Error or StepState.Skipped) Progress(step, 1);
-        _ui.TryEnqueue(() => { step.State = state; step.Status = status; });
+        if (state is StepState.Done or StepState.Warning or StepState.Error or StepState.Skipped)
+            Progress(step, 1);
+        _ui.TryEnqueue(() =>
+        {
+            step.State = state;
+            step.Status = status;
+        });
     }
 
     // ---------- Log ----------
 
     public void Info(string msg) => Write("INFO", msg);
+
     public void Ok(string msg) => Write("OK", msg);
+
     public void Warn(string msg, bool report = true)
     {
         Interlocked.Increment(ref WarningCount);
         Write("AVISO", msg);
-        if (report) lock (Warnings) if (Warnings.Count < 50) Warnings.Add(msg);
+        if (report)
+            lock (Warnings)
+                if (Warnings.Count < 50)
+                    Warnings.Add(msg);
     }
+
     public void Error(string msg)
     {
         Interlocked.Increment(ref ErrorCount);
         Write("ERRO", msg);
-        lock (Warnings) if (Warnings.Count < 50) Warnings.Add(msg);
+        lock (Warnings)
+            if (Warnings.Count < 50)
+                Warnings.Add(msg);
     }
 
     /// <summary>Anota um problema para o relatório final (a tarefa continua).</summary>
     public void Report(Problem p)
     {
-        lock (Problems) Problems.Add(p);
+        lock (Problems)
+            Problems.Add(p);
     }
 
     /// <summary>
@@ -219,10 +274,14 @@ public sealed class BackupRunner
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             CrashLog.Write(ex);
-            if (step != null) Step(step, StepState.Error, L.T("Falhou"));
-            Error(L.F("{0}: falha inesperada ({1}). As outras etapas continuam.", what, ex.Message));
+            if (step != null)
+                Step(step, StepState.Error, L.T("Falhou"));
+            Error(
+                L.F("{0}: falha inesperada ({1}). As outras etapas continuam.", what, ex.Message)
+            );
             Report(new Problem(ProblemKind.Item, what, ex.Message));
-            lock (Modules) Modules.Add(new ModuleResult(what, L.T("Falhou"), StepState.Error));
+            lock (Modules)
+                Modules.Add(new ModuleResult(what, L.T("Falhou"), StepState.Error));
         }
     }
 
@@ -230,11 +289,15 @@ public sealed class BackupRunner
     void WriteProblems()
     {
         int count;
-        lock (Problems) count = Problems.Count;
-        if (count == 0) return;
+        lock (Problems)
+            count = Problems.Count;
+        if (count == 0)
+            return;
         try
         {
-            var dir = Directory.Exists(VersionPath) ? Path.Combine(VersionPath, LogsFolder) : AppLogs;
+            var dir = Directory.Exists(VersionPath)
+                ? Path.Combine(VersionPath, LogsFolder)
+                : AppLogs;
             Directory.CreateDirectory(dir);
             var path = Path.Combine(dir, $"problemas_{StartedAt:yyyy-MM-dd_HH-mm-ss}.txt");
             File.WriteAllText(path, ProblemReport.Text(this), System.Text.Encoding.UTF8);
@@ -252,13 +315,23 @@ public sealed class BackupRunner
         var now = DateTime.Now;
         lock (_logLock)
         {
-            try { _logFile?.WriteLine($"[{now:yyyy-MM-dd HH:mm:ss}] [{level}] {msg}"); } catch { }
+            try
+            {
+                _logFile?.WriteLine($"[{now:yyyy-MM-dd HH:mm:ss}] [{level}] {msg}");
+            }
+            catch { }
         }
-        var line = new LogLine { Time = now.ToString("HH:mm:ss"), Level = level, Message = msg };
+        var line = new LogLine
+        {
+            Time = now.ToString("HH:mm:ss"),
+            Level = level,
+            Message = msg,
+        };
         _ui.TryEnqueue(() =>
         {
             Tail.Add(line);
-            while (Tail.Count > 6) Tail.RemoveAt(0);
+            while (Tail.Count > 6)
+                Tail.RemoveAt(0);
         });
     }
 
@@ -266,7 +339,10 @@ public sealed class BackupRunner
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         LogPath = path;
-        _logFile = new StreamWriter(path, append: true, System.Text.Encoding.UTF8) { AutoFlush = true };
+        _logFile = new StreamWriter(path, append: true, System.Text.Encoding.UTF8)
+        {
+            AutoFlush = true,
+        };
     }
 
     void SetState(RunState s)
@@ -277,7 +353,14 @@ public sealed class BackupRunner
 
     // ---------- Execução ----------
 
-    StepItem? _vss, _files, _drivers, _verify, _prep, _install, _programs, _windows;
+    StepItem? _vss,
+        _files,
+        _drivers,
+        _verify,
+        _prep,
+        _install,
+        _programs,
+        _windows;
 
     void BuildSteps()
     {
@@ -285,7 +368,8 @@ public sealed class BackupRunner
         {
             var s = new StepItem { Name = name, Module = module };
             Steps.Add(s);
-            if (weight > 0) _progress[s] = (weight, 0);
+            if (weight > 0)
+                _progress[s] = (weight, 0);
             return s;
         }
 
@@ -306,19 +390,30 @@ public sealed class BackupRunner
                 _programs = Add(L.T("Programas (winget)"), L.T("Programas"), 40);
             if (Spec.RestoreSources.Any(s => s.WindowsSettings))
                 _windows = Add(L.T("Configurações do Windows"), L.T("Configurações"), 5);
-            foreach (var name in Spec.Unavailable) Unavailable(Add(name, name, 0));
-            if (Spec.RestoreSources.Any(s => s.Folders == null || s.Folders.Count > 0 || s.Files?.Count > 0))
+            foreach (var name in Spec.Unavailable)
+                Unavailable(Add(name, name, 0));
+            if (
+                Spec.RestoreSources.Any(s =>
+                    s.Folders == null || s.Folders.Count > 0 || s.Files?.Count > 0
+                )
+            )
                 _files = Add(L.T("Arquivos e configurações"), L.T("Arquivos"), 80);
             return;
         }
 
         var files = Spec.Folders.Count > 0;
-        if (files && Spec.UseShadowCopy) _vss = Add(L.T("Shadow Copy (VSS)"), L.T(Spec.FilesLabel), 0);
-        if (Spec.Programs) _programs = Add(L.T("Programas (winget)"), L.T("Programas"), 10);
-        if (Spec.WindowsKeys.Count > 0) _windows = Add(L.T("Configurações do Windows"), L.T("Configurações"), 5);
-        if (files) _files = Add(L.T(Spec.FilesLabel), L.T(Spec.FilesLabel), 70);
-        if (Spec.Drivers) _drivers = Add(L.T("Drivers"), L.T("Drivers"), 20);
-        if (files && Spec.VerifyHash) _verify = Add(L.T("Verificar integridade (SHA-256)"), L.T(Spec.FilesLabel), 25);
+        if (files && Spec.UseShadowCopy)
+            _vss = Add(L.T("Shadow Copy (VSS)"), L.T(Spec.FilesLabel), 0);
+        if (Spec.Programs)
+            _programs = Add(L.T("Programas (winget)"), L.T("Programas"), 10);
+        if (Spec.WindowsKeys.Count > 0)
+            _windows = Add(L.T("Configurações do Windows"), L.T("Configurações"), 5);
+        if (files)
+            _files = Add(L.T(Spec.FilesLabel), L.T(Spec.FilesLabel), 70);
+        if (Spec.Drivers)
+            _drivers = Add(L.T("Drivers"), L.T("Drivers"), 20);
+        if (files && Spec.VerifyHash)
+            _verify = Add(L.T("Verificar integridade (SHA-256)"), L.T(Spec.FilesLabel), 25);
     }
 
     static void Unavailable(StepItem s)
@@ -364,7 +459,11 @@ public sealed class BackupRunner
         finally
         {
             WriteProblems();
-            lock (_logLock) { _logFile?.Dispose(); _logFile = null; }
+            lock (_logLock)
+            {
+                _logFile?.Dispose();
+                _logFile = null;
+            }
             _lock?.Dispose();
             _lock = null;
             Notify();
@@ -374,57 +473,92 @@ public sealed class BackupRunner
     async Task RunBackupAsync(CancellationToken token)
     {
         if (string.IsNullOrEmpty(Spec.Destination))
-            throw new InvalidOperationException(L.T("Escolha o destino dos backups no menu lateral."));
+            throw new InvalidOperationException(
+                L.T("Escolha o destino dos backups no menu lateral.")
+            );
 
         var stamp = StartedAt.ToString("yyyy-MM-dd_HH-mm-ss");
         VersionPath = Path.Combine(Spec.Destination, "WINbackup_" + stamp);
         Directory.CreateDirectory(VersionPath);
         OpenLog(Path.Combine(VersionPath, LogsFolder, $"backup_audit_{stamp}.log"));
         Info(L.F("{0} · destino {1}", L.T(Spec.Title), VersionPath));
-        if (!Sys.IsAdmin) Warn(L.T("O app não está rodando como administrador: alguns arquivos e os drivers podem falhar."));
+        if (!Sys.IsAdmin)
+            Warn(
+                L.T(
+                    "O app não está rodando como administrador: alguns arquivos e os drivers podem falhar."
+                )
+            );
 
-        var manifest = new Manifest { CreatedAt = StartedAt, Name = Path.GetFileName(VersionPath), Title = Spec.Title };
+        var manifest = new Manifest
+        {
+            CreatedAt = StartedAt,
+            Name = Path.GetFileName(VersionPath),
+            Title = Spec.Title,
+        };
         manifest.Save(VersionPath);
 
         // Cada etapa isolada: um erro inesperado numa delas não impede as outras
         if (_files != null)
         {
             manifest.Modules.Add(Spec.FilesLabel);
-            await Isolate(_files, L.T(Spec.FilesLabel), () => FilesModule.RunAsync(this, _files, _vss, _verify, manifest, token));
+            await Isolate(_files, L.T(Spec.FilesLabel), () =>
+                FilesModule.RunAsync(this, _files, _vss, _verify, manifest, token)
+            );
         }
         if (_programs != null)
         {
             manifest.Modules.Add("Programas");
-            await Isolate(_programs, L.T("Programas"), () => ProgramsModule.BackupAsync(this, _programs, manifest, token));
+            await Isolate(_programs, L.T("Programas"), () =>
+                ProgramsModule.BackupAsync(this, _programs, manifest, token)
+            );
         }
         if (_windows != null)
         {
             manifest.Modules.Add("Configurações do Windows");
-            await Isolate(_windows, L.T("Configurações do Windows"), () => ConfigsModule.BackupWindowsAsync(this, _windows, manifest, token));
+            await Isolate(_windows, L.T("Configurações do Windows"), () =>
+                ConfigsModule.BackupWindowsAsync(this, _windows, manifest, token)
+            );
         }
         if (Spec.Games)
-            await Isolate(null, L.T("Bibliotecas da Steam"), () => { manifest.SteamLibraries = GamesModule.SteamLibraries(); return Task.CompletedTask; });
+            await Isolate(null, L.T("Bibliotecas da Steam"), () =>
+            {
+                manifest.SteamLibraries = GamesModule.SteamLibraries();
+                return Task.CompletedTask;
+            });
         if (Spec.Browsers)
             await Isolate(null, L.T("Lista de extensões"), () =>
             {
                 var browsers = BrowsersModule.Detect();
                 BrowsersModule.WriteExtensionList(VersionPath, browsers);
                 if (Settings.Data.PasswordCsvs.Count == 0 && browsers.Any(b => b.Installed))
-                    Warn(L.T("Senhas dos navegadores não foram exportadas. Faça a exportação guiada em Navegadores antes de formatar."));
+                    Warn(
+                        L.T(
+                            "Senhas dos navegadores não foram exportadas. Faça a exportação guiada em Navegadores antes de formatar."
+                        )
+                    );
                 return Task.CompletedTask;
             });
         if (_drivers != null)
         {
             manifest.Modules.Add("Drivers");
-            await Isolate(_drivers, L.T("Drivers"), () => DriversModule.BackupAsync(this, _drivers, manifest, token));
+            await Isolate(_drivers, L.T("Drivers"), () =>
+                DriversModule.BackupAsync(this, _drivers, manifest, token)
+            );
         }
         foreach (var name in Spec.Unavailable)
-            Modules.Add(new ModuleResult(name, L.T("Ainda não disponível nesta versão"), StepState.Unavailable));
+            Modules.Add(
+                new ModuleResult(
+                    name,
+                    L.T("Ainda não disponível nesta versão"),
+                    StepState.Unavailable
+                )
+            );
 
         manifest.BytesStored = StoredBytes;
         manifest.Completed = true;
         manifest.Save(VersionPath);
-        if (ErrorCount == 0) Retention.Apply(Spec.Destination, Settings.Data.KeepVersions, Info);
+        if (ErrorCount == 0)
+            Retention.Apply(Spec.Destination, Settings.Data.KeepVersions, Info);
         Percent = 100;
     }
 
@@ -432,17 +566,44 @@ public sealed class BackupRunner
     {
         var stamp = StartedAt.ToString("yyyy-MM-dd_HH-mm-ss");
         OpenLog(Path.Combine(AppLogs, $"restaurar_{stamp}.log"));
-        foreach (var path in Spec.RestoreSources.Select(s => s.VersionPath).Distinct(StringComparer.OrdinalIgnoreCase)) Info(L.F("Restaurando de {0}", path));
-        Info(Spec.Target switch
-        {
-            RestoreTarget.Folder => L.F("Destino: outra pasta ({0})", Spec.TargetPath),
-            RestoreTarget.OtherUser => L.F("Destino: outro usuário ({0})", Spec.TargetPath),
-            _ => L.T("Destino: locais originais"),
-        } + L.F(" · se já existir: {0}", Spec.Conflict switch { ConflictMode.Overwrite => "substituir", ConflictMode.KeepBoth => "manter os dois", _ => "pular" }));
-        if (!Sys.IsAdmin) Warn(L.T("O app não está rodando como administrador: drivers e pastas protegidas podem falhar."));
+        foreach (
+            var path in Spec
+                .RestoreSources.Select(s => s.VersionPath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+        )
+            Info(L.F("Restaurando de {0}", path));
+        Info(
+            Spec.Target switch
+            {
+                RestoreTarget.Folder => L.F("Destino: outra pasta ({0})", Spec.TargetPath),
+                RestoreTarget.OtherUser => L.F("Destino: outro usuário ({0})", Spec.TargetPath),
+                _ => L.T("Destino: locais originais"),
+            }
+                + L.F(
+                    " · se já existir: {0}",
+                    Spec.Conflict switch
+                    {
+                        ConflictMode.Overwrite => "substituir",
+                        ConflictMode.KeepBoth => "manter os dois",
+                        _ => "pular",
+                    }
+                )
+        );
+        if (!Sys.IsAdmin)
+            Warn(
+                L.T(
+                    "O app não está rodando como administrador: drivers e pastas protegidas podem falhar."
+                )
+            );
         await RestoreModule.RunAsync(this, _files, _prep, _install, _programs, _windows, token);
         foreach (var name in Spec.Unavailable)
-            Modules.Add(new ModuleResult(name, L.T("Ainda não disponível nesta versão"), StepState.Unavailable));
+            Modules.Add(
+                new ModuleResult(
+                    name,
+                    L.T("Ainda não disponível nesta versão"),
+                    StepState.Unavailable
+                )
+            );
         Percent = 100;
     }
 
@@ -458,16 +619,31 @@ public sealed class BackupRunner
     void Notify()
     {
         var failed = State == RunState.Failed || ErrorCount > 0;
-        if (State == RunState.Canceled) return;
-        if (failed ? !Settings.Data.NotifyErrors : !Settings.Data.NotifyDone) return;
+        if (State == RunState.Canceled)
+            return;
+        if (failed ? !Settings.Data.NotifyErrors : !Settings.Data.NotifyDone)
+            return;
         var restore = Spec.IsRestore;
         var issues = WarningCount + ErrorCount;
-        var title = State == RunState.Failed ? (restore ? L.T("A restauração não terminou") : L.T("O backup não terminou"))
-            : issues > 0 ? (restore ? L.F("Restauração concluída com {0} avisos", issues) : L.F("Backup concluído com {0} avisos", issues))
-            : restore ? L.T("Restauração concluída") : L.T("Backup concluído");
+        var title =
+            State == RunState.Failed
+                ? (restore ? L.T("A restauração não terminou") : L.T("O backup não terminou"))
+            : issues > 0
+                ? (
+                    restore
+                        ? L.F("Restauração concluída com {0} avisos", issues)
+                        : L.F("Backup concluído com {0} avisos", issues)
+                )
+            : restore ? L.T("Restauração concluída")
+            : L.T("Backup concluído");
         var body = Spec.IsRestore
-            ? (RebootRequired ? L.T("Reinicie o computador para terminar.") : L.T("Drivers instalados."))
-            : L.F("{0} salvos em {1}", Sys.Bytes(StoredBytes), Spec.Destination) + (IntegrityOk && Spec.VerifyHash ? L.T(" · integridade conferida") : "");
+            ? (
+                RebootRequired
+                    ? L.T("Reinicie o computador para terminar.")
+                    : L.T("Drivers instalados.")
+            )
+            : L.F("{0} salvos em {1}", Sys.Bytes(StoredBytes), Spec.Destination)
+                + (IntegrityOk && Spec.VerifyHash ? L.T(" · integridade conferida") : "");
         Notifier.Show(title, body);
     }
 }

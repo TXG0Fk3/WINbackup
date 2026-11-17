@@ -8,7 +8,8 @@
     <Version>0.4.0</Version>
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
-    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'"
+      >win-arm64</RuntimeIdentifier>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
     <PlatformTarget Condition="'$(RuntimeIdentifier)' == 'win-arm64'">ARM64</PlatformTarget>
     <PlatformTarget Condition="'$(RuntimeIdentifier)' == 'win-x64'">x64</PlatformTarget>
@@ -27,8 +28,10 @@
     <ApplicationIcon>Assets/WINbackup.ico</ApplicationIcon>
     <Configurations>Debug;Release;Teste</Configurations>
     <!-- Requer administrador. "dotnet build -c Teste" gera uma versão sem UAC, em bin\Teste, só para testar a interface -->
-    <ApplicationManifest Condition="'$(Configuration)' != 'Teste'">app.manifest</ApplicationManifest>
-    <ApplicationManifest Condition="'$(Configuration)' == 'Teste'">app.asinvoker.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(Configuration)' != 'Teste'"
+      >app.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(Configuration)' == 'Teste'"
+      >app.asinvoker.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />

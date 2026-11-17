@@ -15,7 +15,8 @@ public static class Retention
 
     static List<(string Path, string Name)> Plan(string destination, int keep)
     {
-        var versions = Services.Destinations.Versions(destination)
+        var versions = Services
+            .Destinations.Versions(destination)
             .Select(v => (Path: v, Name: System.IO.Path.GetFileName(v), M: Manifest.Load(v)))
             .Where(v => v.M is { Completed: true })
             .ToList();
@@ -23,14 +24,21 @@ public static class Retention
         var kept = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var group in versions.GroupBy(v => v.M!.Title))
         {
-            foreach (var v in group.Take(keep)) kept.Add(v.Name);
-            if (group.FirstOrDefault(v => v.M!.Kind == "Completo") is { Name: { } full }) kept.Add(full);
+            foreach (var v in group.Take(keep))
+                kept.Add(v.Name);
+            if (group.FirstOrDefault(v => v.M!.Kind == "Completo") is { Name: { } full })
+                kept.Add(full);
         }
 
         // Versões das quais as mantidas dependem (pelo nome original: a pasta pode ter sido renomeada)
         foreach (var v in versions.Where(v => kept.Contains(v.Name)).ToList())
-            foreach (var name in v.M!.Files.Select(f => f.Stored.Split('\\')[0]).Distinct(StringComparer.OrdinalIgnoreCase))
-                kept.Add(System.IO.Path.GetFileName(StoredFiles.VersionFolder(destination, name) ?? name));
+        foreach (
+            var name in v.M!.Files.Select(f => f.Stored.Split('\\')[0])
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+        )
+            kept.Add(
+                System.IO.Path.GetFileName(StoredFiles.VersionFolder(destination, name) ?? name)
+            );
 
         return versions.Where(v => !kept.Contains(v.Name)).Select(v => (v.Path, v.Name)).ToList();
     }

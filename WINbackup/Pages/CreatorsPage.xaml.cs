@@ -41,17 +41,29 @@ public sealed partial class CreatorsPage : Page
             foreach (var app in CreatorApps.Catalog.Where(a => a.Category == category))
             {
                 var paths = CreatorApps.Resolve(app);
-                if (paths.Count == 0) { missing.Add(L.T(app.Name)); continue; }
+                if (paths.Count == 0)
+                {
+                    missing.Add(L.T(app.Name));
+                    continue;
+                }
                 var item = new CheckItem
                 {
-                    Key = app.Key, Title = L.T(app.Name), Subtitle = L.T(app.Note), Flag = app.Plugins, Meta = "…",
-                    Col1 = paths.Count == 1 ? Sys.Pretty(paths[0]) : $"{Sys.Pretty(paths[0])} +{paths.Count - 1}",
+                    Key = app.Key,
+                    Title = L.T(app.Name),
+                    Subtitle = L.T(app.Note),
+                    Flag = app.Plugins,
+                    Meta = "…",
+                    Col1 =
+                        paths.Count == 1
+                            ? Sys.Pretty(paths[0])
+                            : $"{Sys.Pretty(paths[0])} +{paths.Count - 1}",
                     Enabled = !app.Plugins || S.CreatorPlugins,
                     IsChecked = CreatorApps.IsSelected(app) && (!app.Plugins || S.CreatorPlugins),
                 };
                 item.Changed += i =>
                 {
-                    if (!i.Enabled) return;
+                    if (!i.Enabled)
+                        return;
                     S.CreatorSelection[app.Key] = i.IsChecked;
                     Settings.Save();
                     UpdateTotals();
@@ -60,24 +72,68 @@ public sealed partial class CreatorsPage : Page
                 found.Add(item);
                 Measure(item, paths);
             }
-            if (found.Count == 0) continue;
+            if (found.Count == 0)
+                continue;
 
-            var header = new Grid { Padding = new Thickness(18, 14, 18, 14), BorderBrush = UI.Brush("#16223d"), BorderThickness = new Thickness(0, 0, 0, 1) };
-            header.Children.Add(new TextBlock { Text = L.T(category), FontSize = 15, FontWeight = FontWeights.SemiBold });
-            header.Children.Add(new TextBlock { Text = found.Count == 1 ? L.T("1 encontrado") : L.F("{0} encontrados", found.Count), FontSize = 12, Foreground = UI.Muted,
-                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center });
+            var header = new Grid
+            {
+                Padding = new Thickness(18, 14, 18, 14),
+                BorderBrush = UI.Brush("#16223d"),
+                BorderThickness = new Thickness(0, 0, 0, 1),
+            };
+            header.Children.Add(
+                new TextBlock
+                {
+                    Text = L.T(category),
+                    FontSize = 15,
+                    FontWeight = FontWeights.SemiBold,
+                }
+            );
+            header.Children.Add(
+                new TextBlock
+                {
+                    Text =
+                        found.Count == 1
+                            ? L.T("1 encontrado")
+                            : L.F("{0} encontrados", found.Count),
+                    FontSize = 12,
+                    Foreground = UI.Muted,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center,
+                }
+            );
             var list = new ItemsRepeater { ItemTemplate = template, ItemsSource = found };
             var panel = new StackPanel();
             panel.Children.Add(header);
             panel.Children.Add(list);
-            CategoriesPanel.Children.Add(new Border { Style = (Style)Application.Current.Resources["TableCard"], Child = panel });
+            CategoriesPanel.Children.Add(
+                new Border
+                {
+                    Style = (Style)Application.Current.Resources["TableCard"],
+                    Child = panel,
+                }
+            );
         }
 
         if (_rows.Count == 0)
-            CategoriesPanel.Children.Add(new TextBlock { Text = L.T("Nenhum programa de criação encontrado neste PC. Use \"Adicionar pasta\" para incluir pastas manualmente."),
-                Foreground = UI.Muted, TextWrapping = TextWrapping.Wrap });
-        MissingText.Text = missing.Count == 0 ? "" : L.T("Não encontrados neste PC: ") + string.Join(", ", missing) + ".";
-        FoundText.Text = _rows.Count == 1 ? L.T("1 programa encontrado") : L.F("{0} programas encontrados", _rows.Count);
+            CategoriesPanel.Children.Add(
+                new TextBlock
+                {
+                    Text = L.T(
+                        "Nenhum programa de criação encontrado neste PC. Use \"Adicionar pasta\" para incluir pastas manualmente."
+                    ),
+                    Foreground = UI.Muted,
+                    TextWrapping = TextWrapping.Wrap,
+                }
+            );
+        MissingText.Text =
+            missing.Count == 0
+                ? ""
+                : L.T("Não encontrados neste PC: ") + string.Join(", ", missing) + ".";
+        FoundText.Text =
+            _rows.Count == 1
+                ? L.T("1 programa encontrado")
+                : L.F("{0} programas encontrados", _rows.Count);
         LoadCustom();
         UpdateTotals();
         Unloaded += (_, _) => _measure.Cancel();
@@ -108,7 +164,12 @@ public sealed partial class CreatorsPage : Page
     {
         var chosen = _rows.Where(r => r.Item.Enabled && r.Item.IsChecked).ToList();
         var pending = chosen.Any(r => !_sizes.ContainsKey(r.Item.Key));
-        SizeText.Text = L.F("{0}{1} · {2} selecionados", Sys.Bytes(chosen.Sum(r => _sizes.GetValueOrDefault(r.Item.Key))), (pending ? "+" : ""), chosen.Count);
+        SizeText.Text = L.F(
+            "{0}{1} · {2} selecionados",
+            Sys.Bytes(chosen.Sum(r => _sizes.GetValueOrDefault(r.Item.Key))),
+            (pending ? "+" : ""),
+            chosen.Count
+        );
         StartButton.IsEnabled = chosen.Count > 0 || S.CreatorCustomFolders.Count > 0;
     }
 
@@ -120,11 +181,32 @@ public sealed partial class CreatorsPage : Page
             var g = new Grid { ColumnSpacing = 10 };
             g.ColumnDefinitions.Add(new ColumnDefinition());
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            g.Children.Add(new TextBlock { Text = path, FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["Mono"], FontSize = 12.5,
-                VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
-                Foreground = Directory.Exists(path) ? UI.Text : UI.Warn });
-            var remove = new Button { Style = (Style)Application.Current.Resources["SmallButton"], Height = 30, FontSize = 12, Content = L.T("Remover") };
-            remove.Click += (_, _) => { S.CreatorCustomFolders.Remove(path); Settings.Save(); LoadCustom(); UpdateTotals(); };
+            g.Children.Add(
+                new TextBlock
+                {
+                    Text = path,
+                    FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)
+                        Application.Current.Resources["Mono"],
+                    FontSize = 12.5,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    Foreground = Directory.Exists(path) ? UI.Text : UI.Warn,
+                }
+            );
+            var remove = new Button
+            {
+                Style = (Style)Application.Current.Resources["SmallButton"],
+                Height = 30,
+                FontSize = 12,
+                Content = L.T("Remover"),
+            };
+            remove.Click += (_, _) =>
+            {
+                S.CreatorCustomFolders.Remove(path);
+                Settings.Save();
+                LoadCustom();
+                UpdateTotals();
+            };
             Grid.SetColumn(remove, 1);
             g.Children.Add(remove);
             CustomPanel.Children.Add(g);
@@ -134,7 +216,8 @@ public sealed partial class CreatorsPage : Page
     void OnAddFolder(object sender, RoutedEventArgs e)
     {
         var path = FileDialog.PickFolder(L.T("Adicionar pasta ao backup de Criadores"));
-        if (path == null || S.CreatorCustomFolders.Contains(path, StringComparer.OrdinalIgnoreCase)) return;
+        if (path == null || S.CreatorCustomFolders.Contains(path, StringComparer.OrdinalIgnoreCase))
+            return;
         S.CreatorCustomFolders.Add(path);
         Settings.Save();
         LoadCustom();
@@ -145,13 +228,23 @@ public sealed partial class CreatorsPage : Page
     {
         if (string.IsNullOrEmpty(S.Destination))
         {
-            await Dialogs.InfoAsync(XamlRoot, L.T("Escolha o destino"), L.T("Clique em Destino dos backups, no menu lateral, e escolha um HD externo ou uma pasta."));
+            await Dialogs.InfoAsync(
+                XamlRoot,
+                L.T("Escolha o destino"),
+                L.T(
+                    "Clique em Destino dos backups, no menu lateral, e escolha um HD externo ou uma pasta."
+                )
+            );
             return;
         }
         var spec = Presets.Creators();
         if (spec.Folders.Count == 0)
         {
-            await Dialogs.InfoAsync(XamlRoot, L.T("Nada selecionado"), L.T("Marque pelo menos um programa ou adicione uma pasta."));
+            await Dialogs.InfoAsync(
+                XamlRoot,
+                L.T("Nada selecionado"),
+                L.T("Marque pelo menos um programa ou adicione uma pasta.")
+            );
             return;
         }
         App.Shell.Run(spec);

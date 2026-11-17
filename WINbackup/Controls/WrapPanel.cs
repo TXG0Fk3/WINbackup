@@ -12,7 +12,10 @@ public sealed partial class WrapPanel : Panel
 
     protected override Size MeasureOverride(Size available)
     {
-        double x = 0, y = 0, line = 0, width = 0;
+        double x = 0,
+            y = 0,
+            line = 0,
+            width = 0;
         foreach (var child in Children)
         {
             child.Measure(new Size(available.Width, double.PositiveInfinity));
@@ -27,12 +30,17 @@ public sealed partial class WrapPanel : Panel
             line = Math.Max(line, s.Height);
             width = Math.Max(width, x - Spacing);
         }
-        return new Size(double.IsInfinity(available.Width) ? width : available.Width, Children.Count == 0 ? 0 : y + line);
+        return new Size(
+            double.IsInfinity(available.Width) ? width : available.Width,
+            Children.Count == 0 ? 0 : y + line
+        );
     }
 
     protected override Size ArrangeOverride(Size final)
     {
-        double x = 0, y = 0, line = 0;
+        double x = 0,
+            y = 0,
+            line = 0;
         foreach (var child in Children)
         {
             var s = child.DesiredSize;

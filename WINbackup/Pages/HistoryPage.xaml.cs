@@ -18,8 +18,16 @@ public sealed partial class HistoryPage : Page
     public HistoryPage()
     {
         InitializeComponent();
-        TabV.Checked += (_, _) => { VersionsTab.Visibility = Visibility.Visible; LogsTab.Visibility = Visibility.Collapsed; };
-        TabL.Checked += (_, _) => { VersionsTab.Visibility = Visibility.Collapsed; LogsTab.Visibility = Visibility.Visible; };
+        TabV.Checked += (_, _) =>
+        {
+            VersionsTab.Visibility = Visibility.Visible;
+            LogsTab.Visibility = Visibility.Collapsed;
+        };
+        TabL.Checked += (_, _) =>
+        {
+            VersionsTab.Visibility = Visibility.Collapsed;
+            LogsTab.Visibility = Visibility.Visible;
+        };
         KeepText.Text = Settings.Data.KeepVersions.ToString();
         LoadVersions();
         LoadLog();
@@ -31,7 +39,14 @@ public sealed partial class HistoryPage : Page
         var mono = (FontFamily)Application.Current.Resources["Mono"];
         if (versions.Count == 0)
         {
-            VersionsPanel.Children.Add(new TextBlock { Text = L.T("Nenhuma versão no destino atual ainda."), Foreground = UI.Muted, Margin = new Thickness(18, 14, 18, 14) });
+            VersionsPanel.Children.Add(
+                new TextBlock
+                {
+                    Text = L.T("Nenhuma versão no destino atual ainda."),
+                    Foreground = UI.Muted,
+                    Margin = new Thickness(18, 14, 18, 14),
+                }
+            );
             return;
         }
         var removable = Retention.Removable(Settings.Data.Destination, Settings.Data.KeepVersions);
@@ -40,23 +55,92 @@ public sealed partial class HistoryPage : Page
             var v = versions[i];
             var m = Manifest.Load(v);
             var expiring = removable.Contains(Path.GetFileName(v));
-            var g = new Grid { ColumnSpacing = 12, Padding = new Thickness(18, 12, 18, 12), Opacity = expiring ? 0.45 : 1,
-                BorderBrush = UI.Brush("#16223d"), BorderThickness = new Thickness(0, 0, 0, 1) };
-            foreach (var w in new[] { 1.8, 1, 0.9, 1.2, 1, 1.6 }) g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(w, GridUnitType.Star) });
+            var g = new Grid
+            {
+                ColumnSpacing = 12,
+                Padding = new Thickness(18, 12, 18, 12),
+                Opacity = expiring ? 0.45 : 1,
+                BorderBrush = UI.Brush("#16223d"),
+                BorderThickness = new Thickness(0, 0, 0, 1),
+            };
+            foreach (var w in new[] { 1.8, 1, 0.9, 1.2, 1, 1.6 })
+                g.ColumnDefinitions.Add(
+                    new ColumnDefinition { Width = new GridLength(w, GridUnitType.Star) }
+                );
 
-            Add(g, 0, new TextBlock { Text = HomePage.VersionDate(v)?.ToString("yyyy-MM-dd HH:mm") ?? Path.GetFileName(v), FontFamily = mono, FontSize = 12.5 });
-            Add(g, 1, new TextBlock { Text = m == null ? "?" : m.Completed ? L.T(m.Kind) : L.F("{0} (incompleto)", L.T(m.Kind)), TextTrimming = TextTrimming.CharacterEllipsis });
-            Add(g, 2, new TextBlock { Text = m == null ? "—" : Sys.Bytes(m.BytesStored), Foreground = UI.Muted2 });
+            Add(
+                g,
+                0,
+                new TextBlock
+                {
+                    Text = HomePage.VersionDate(v)?.ToString("yyyy-MM-dd HH:mm")
+                        ?? Path.GetFileName(v),
+                    FontFamily = mono,
+                    FontSize = 12.5,
+                }
+            );
+            Add(
+                g,
+                1,
+                new TextBlock
+                {
+                    Text =
+                        m == null ? "?"
+                        : m.Completed ? L.T(m.Kind)
+                        : L.F("{0} (incompleto)", L.T(m.Kind)),
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                }
+            );
+            Add(
+                g,
+                2,
+                new TextBlock
+                {
+                    Text = m == null ? "—" : Sys.Bytes(m.BytesStored),
+                    Foreground = UI.Muted2,
+                }
+            );
 
-            var (hash, color) = m == null || !m.HashChecked ? (L.T("Não verificado"), UI.Muted)
-                : m.HashMismatches == 0 ? (L.T("SHA-256 conferido"), UI.Ok) : (L.F("{0} arquivos divergentes", m.HashMismatches), UI.Warn);
+            var (hash, color) =
+                m == null || !m.HashChecked ? (L.T("Não verificado"), UI.Muted)
+                : m.HashMismatches == 0 ? (L.T("SHA-256 conferido"), UI.Ok)
+                : (L.F("{0} arquivos divergentes", m.HashMismatches), UI.Warn);
             var hs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-            hs.Children.Add(new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 7, Height = 7, Fill = color, VerticalAlignment = VerticalAlignment.Center });
-            hs.Children.Add(new TextBlock { Text = hash, FontSize = 12, Foreground = color });
+            hs.Children.Add(
+                new Microsoft.UI.Xaml.Shapes.Ellipse
+                {
+                    Width = 7,
+                    Height = 7,
+                    Fill = color,
+                    VerticalAlignment = VerticalAlignment.Center,
+                }
+            );
+            hs.Children.Add(
+                new TextBlock
+                {
+                    Text = hash,
+                    FontSize = 12,
+                    Foreground = color,
+                }
+            );
             Add(g, 3, hs);
-            Add(g, 4, new TextBlock { Text = m?.Encrypted == true ? "AES-256" : L.T("Sem criptografia"), FontSize = 12, Foreground = m?.Encrypted == true ? UI.NeonSoft : UI.Muted });
+            Add(
+                g,
+                4,
+                new TextBlock
+                {
+                    Text = m?.Encrypted == true ? "AES-256" : L.T("Sem criptografia"),
+                    FontSize = 12,
+                    Foreground = m?.Encrypted == true ? UI.NeonSoft : UI.Muted,
+                }
+            );
 
-            var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
+            var actions = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6,
+                HorizontalAlignment = HorizontalAlignment.Right,
+            };
             var open = SmallButton(L.T("Abrir"));
             open.Click += (_, _) => Sys.Open(v);
             var restore = SmallButton(L.T("Restaurar"));
@@ -68,11 +152,17 @@ public sealed partial class HistoryPage : Page
         }
     }
 
-    static Button SmallButton(string text) => new()
-    {
-        Style = (Style)Application.Current.Resources["SecondaryButton"], Height = 30, Padding = new Thickness(10, 0, 10, 0),
-        FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.Normal, CornerRadius = new CornerRadius(7), Content = text,
-    };
+    static Button SmallButton(string text) =>
+        new()
+        {
+            Style = (Style)Application.Current.Resources["SecondaryButton"],
+            Height = 30,
+            Padding = new Thickness(10, 0, 10, 0),
+            FontSize = 12,
+            FontWeight = Microsoft.UI.Text.FontWeights.Normal,
+            CornerRadius = new CornerRadius(7),
+            Content = text,
+        };
 
     static void Add(Grid g, int col, FrameworkElement e)
     {
@@ -85,13 +175,30 @@ public sealed partial class HistoryPage : Page
 
     void LoadLog()
     {
-        _logFile = Destinations.Versions()
-            .Select(v => new[] { Path.Combine(v, BackupRunner.LogsFolder), v }.Where(Directory.Exists)   // backups antigos: log na raiz
-                .SelectMany(d => Directory.EnumerateFiles(d, "backup_audit_*.log")).FirstOrDefault())
+        _logFile = Destinations
+            .Versions()
+            .Select(v =>
+                new[] { Path.Combine(v, BackupRunner.LogsFolder), v }
+                    .Where(Directory.Exists) // backups antigos: log na raiz
+                    .SelectMany(d => Directory.EnumerateFiles(d, "backup_audit_*.log"))
+                    .FirstOrDefault()
+            )
             .FirstOrDefault(f => f != null);
         var logsDir = BackupRunner.AppLogs;
-        var restoreLog = Directory.Exists(logsDir) ? Directory.GetFiles(logsDir, "restaurar*.log").OrderByDescending(f => f).FirstOrDefault() : null;
-        if (restoreLog != null && (_logFile == null || File.GetLastWriteTime(restoreLog) > File.GetLastWriteTime(_logFile))) _logFile = restoreLog;
+        var restoreLog = Directory.Exists(logsDir)
+            ? Directory
+                .GetFiles(logsDir, "restaurar*.log")
+                .OrderByDescending(f => f)
+                .FirstOrDefault()
+            : null;
+        if (
+            restoreLog != null
+            && (
+                _logFile == null
+                || File.GetLastWriteTime(restoreLog) > File.GetLastWriteTime(_logFile)
+            )
+        )
+            _logFile = restoreLog;
 
         if (_logFile == null)
         {
@@ -101,11 +208,26 @@ public sealed partial class HistoryPage : Page
         LogSource.Text = _logFile;
         try
         {
-            using var fs = new FileStream(_logFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var fs = new FileStream(
+                _logFile,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite
+            );
             using var reader = new StreamReader(fs);
-            _log = reader.ReadToEnd().Split('\n').Select(l => LineRx.Match(l.TrimEnd('\r'))).Where(m => m.Success)
-                .Select(m => new LogLine { Time = m.Groups["d"].Value.Split(' ').Last(), Level = m.Groups["l"].Value, Message = m.Groups["m"].Value })
-                .TakeLast(300).ToList();
+            _log = reader
+                .ReadToEnd()
+                .Split('\n')
+                .Select(l => LineRx.Match(l.TrimEnd('\r')))
+                .Where(m => m.Success)
+                .Select(m => new LogLine
+                {
+                    Time = m.Groups["d"].Value.Split(' ').Last(),
+                    Level = m.Groups["l"].Value,
+                    Message = m.Groups["m"].Value,
+                })
+                .TakeLast(300)
+                .ToList();
         }
         catch (IOException ex)
         {
@@ -116,7 +238,8 @@ public sealed partial class HistoryPage : Page
 
     void OnLogFilter(object sender, RoutedEventArgs e)
     {
-        if (LogLines == null) return;
+        if (LogLines == null)
+            return;
         var tag = (string)((FrameworkElement)sender).Tag;
         LogLines.ItemsSource = tag switch
         {
@@ -130,10 +253,12 @@ public sealed partial class HistoryPage : Page
     void OnOpenLogs(object sender, RoutedEventArgs e)
     {
         var dir = _logFile != null ? Path.GetDirectoryName(_logFile) : Settings.Data.Destination;
-        if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir)) Sys.Open(dir);
+        if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+            Sys.Open(dir);
     }
 
     void OnDec(object sender, RoutedEventArgs e) => SetKeep(Settings.Data.KeepVersions - 1);
+
     void OnInc(object sender, RoutedEventArgs e) => SetKeep(Settings.Data.KeepVersions + 1);
 
     void SetKeep(int n)
@@ -141,7 +266,8 @@ public sealed partial class HistoryPage : Page
         Settings.Data.KeepVersions = Math.Clamp(n, 1, 30);
         Settings.Save();
         KeepText.Text = Settings.Data.KeepVersions.ToString();
-        while (VersionsPanel.Children.Count > 1) VersionsPanel.Children.RemoveAt(1);
+        while (VersionsPanel.Children.Count > 1)
+            VersionsPanel.Children.RemoveAt(1);
         LoadVersions();
     }
 }

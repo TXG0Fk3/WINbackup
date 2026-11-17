@@ -11,13 +11,15 @@ public static class Donation
 {
     public const string PixKey = "winchestercanal@gmail.com";
     public const string PixName = "Canal WINchester"; // nome do recebedor, como aparece no app do banco (até 25 letras)
-    public const string PixCity = "São Paulo";        // cidade do recebedor (até 15 letras)
+    public const string PixCity = "São Paulo"; // cidade do recebedor (até 15 letras)
     public const string LivePixUrl = "https://livepix.gg/canalwinchester"; // ex.: https://livepix.gg/seucanal
     public const string PayPalUrl = "https://www.paypal.com/donate/?hosted_button_id=SANZPNKWBY8GN"; // botão de doação do PayPal (doações de fora do Brasil)
 
     public static bool PixReady => PixKey.Length > 0 && PixName.Length > 0 && PixCity.Length > 0;
-    public static bool LivePixReady => LivePixUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-    public static bool PayPalReady => PayPalUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+    public static bool LivePixReady =>
+        LivePixUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+    public static bool PayPalReady =>
+        PayPalUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Lembrete a cada N backups bem-sucedidos.</summary>
     public const int ReminderEvery = 5;
@@ -28,7 +30,9 @@ public static class Donation
         var s = Settings.Data;
         s.SuccessfulBackups++;
         Settings.Save();
-        return !s.DonationReminderOff && (PixReady || LivePixReady || PayPalReady) && s.SuccessfulBackups % ReminderEvery == 0;
+        return !s.DonationReminderOff
+            && (PixReady || LivePixReady || PayPalReady)
+            && s.SuccessfulBackups % ReminderEvery == 0;
     }
 
     /// <summary>Payload EMV do Pix. Sem valor, quem paga digita o valor no banco.</summary>
@@ -42,12 +46,13 @@ public static class Donation
             .Append(F("26", account))
             .Append(F("52", "0000"))
             .Append(F("53", "986"));
-        if (amount is > 0) sb.Append(F("54", amount.Value.ToString("0.00", CultureInfo.InvariantCulture)));
+        if (amount is > 0)
+            sb.Append(F("54", amount.Value.ToString("0.00", CultureInfo.InvariantCulture)));
         sb.Append(F("58", "BR"))
-          .Append(F("59", Clean(PixName, 25)))
-          .Append(F("60", Clean(PixCity, 15)))
-          .Append(F("62", F("05", "WINBACKUP")))
-          .Append("6304");
+            .Append(F("59", Clean(PixName, 25)))
+            .Append(F("60", Clean(PixCity, 15)))
+            .Append(F("62", F("05", "WINBACKUP")))
+            .Append("6304");
         var payload = sb.ToString();
         return payload + Crc16(payload).ToString("X4");
     }
@@ -55,8 +60,11 @@ public static class Donation
     /// <summary>Sem acentos e em maiúsculas, como os bancos esperam no BR Code.</summary>
     static string Clean(string s, int max)
     {
-        var plain = new string(s.Normalize(NormalizationForm.FormD)
-            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray()).ToUpperInvariant();
+        var plain = new string(
+            s.Normalize(NormalizationForm.FormD)
+                .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                .ToArray()
+        ).ToUpperInvariant();
         return plain.Length > max ? plain[..max] : plain;
     }
 

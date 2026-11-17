@@ -5,16 +5,22 @@ namespace WINbackup.Services;
 public class SettingsData
 {
     public string Destination { get; set; } = "";
+
     /// <summary>Pasta de backups escolhida em Restaurar backup (vazia = usar o destino ou procurar nos discos).</summary>
     public string RestoreFrom { get; set; } = "";
     public int Preset { get; set; }
+
     /// <summary>Presets marcados no Início (Ctrl + clique marca mais de um); vazio = só o Preset.</summary>
     public List<int> Presets { get; set; } = new();
 
     /// <summary>Presets marcados, válidos e em ordem (sempre pelo menos um).</summary>
     public List<int> ChosenPresets()
     {
-        var list = Presets.Where(i => i >= 0 && i < Backup.Presets.All.Length).Distinct().Order().ToList();
+        var list = Presets
+            .Where(i => i >= 0 && i < Backup.Presets.All.Length)
+            .Distinct()
+            .Order()
+            .ToList();
         return list.Count > 0 ? list : [Math.Clamp(Preset, 0, Backup.Presets.All.Length - 1)];
     }
 
@@ -22,7 +28,8 @@ public class SettingsData
     public string FilesMode { get; set; } = "C";
     public Dictionary<string, bool> FolderSelection { get; set; } = new();
     public List<string> CustomFolders { get; set; } = new();
-    public List<string> Exclusions { get; set; } = ["node_modules", "*.tmp", "Cache", "Thumbs.db", "$RECYCLE.BIN", "*.iso"];
+    public List<string> Exclusions { get; set; } =
+    ["node_modules", "*.tmp", "Cache", "Thumbs.db", "$RECYCLE.BIN", "*.iso"];
     public bool DownloadCloudFiles { get; set; } = true;
     public bool UseShadowCopy { get; set; } = true;
     public bool Incremental { get; set; } = true;
@@ -78,10 +85,13 @@ public static class Settings
     public static bool IsPortable => File.Exists(Path.Combine(Sys.ExeFolder, PortableMarker));
 
     // WINBACKUP_DATA troca a pasta (testes); portable.txt usa a pasta Dados ao lado do .exe
-    public static string Folder { get; } = Environment.GetEnvironmentVariable("WINBACKUP_DATA") is { Length: > 0 } custom
-        ? custom
+    public static string Folder { get; } =
+        Environment.GetEnvironmentVariable("WINBACKUP_DATA") is { Length: > 0 } custom ? custom
         : IsPortable ? Path.Combine(Sys.ExeFolder, "Dados")
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WINbackup");
+        : Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "WINbackup"
+        );
     static string FilePath => Path.Combine(Folder, "settings.json");
     static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
@@ -93,7 +103,8 @@ public static class Settings
         try
         {
             if (File.Exists(FilePath))
-                Data = JsonSerializer.Deserialize<SettingsData>(File.ReadAllText(FilePath)) ?? new();
+                Data = JsonSerializer.Deserialize<SettingsData>(File.ReadAllText(FilePath))
+                    ?? new();
         }
         catch (Exception ex)
         {

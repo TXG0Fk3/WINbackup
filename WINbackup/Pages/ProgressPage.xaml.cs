@@ -25,20 +25,38 @@ public sealed partial class ProgressPage : Page
             TitleText.Text = L.T("Nenhuma tarefa em andamento");
             StateLabel.Text = "";
             SubText.Text = L.T("Comece um backup pelo Início ou pelas telas do menu Backup.");
-            PauseButton.Visibility = CancelButton.Visibility = OpenLogButton.Visibility = HashBadge.Visibility = Visibility.Collapsed;
+            PauseButton.Visibility =
+                CancelButton.Visibility =
+                OpenLogButton.Visibility =
+                HashBadge.Visibility =
+                    Visibility.Collapsed;
             return;
         }
 
         TitleText.Text = L.T(_runner.Spec.Title);
-        HashBadge.Visibility = _runner.Spec.Kind == JobKind.Backup && _runner.Spec.Folders.Count > 0 && _runner.Spec.VerifyHash
-            ? Visibility.Visible : Visibility.Collapsed;
+        HashBadge.Visibility =
+            _runner.Spec.Kind == JobKind.Backup
+            && _runner.Spec.Folders.Count > 0
+            && _runner.Spec.VerifyHash
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         StepsRepeater.ItemsSource = _runner.Steps;
         LogList.ItemsSource = _runner.Tail;
         _lastBytes = _runner.BytesMoved;
 
         _timer.Tick += (_, _) => Tick();
-        Loaded += (_, _) => { _runner.StateChanged += OnState; _timer.Start(); OnState(); Tick(); };
-        Unloaded += (_, _) => { _runner.StateChanged -= OnState; _timer.Stop(); };
+        Loaded += (_, _) =>
+        {
+            _runner.StateChanged += OnState;
+            _timer.Start();
+            OnState();
+            Tick();
+        };
+        Unloaded += (_, _) =>
+        {
+            _runner.StateChanged -= OnState;
+            _timer.Stop();
+        };
     }
 
     void OnState()
@@ -57,14 +75,17 @@ public sealed partial class ProgressPage : Page
         Bar.Background = brush;
         PauseButton.Content = r.State == RunState.Paused ? L.T("Continuar") : L.T("Pausar");
         var done = r.IsFinished;
-        PauseButton.Visibility = CancelButton.Visibility = done ? Visibility.Collapsed : Visibility.Visible;
+        PauseButton.Visibility = CancelButton.Visibility = done
+            ? Visibility.Collapsed
+            : Visibility.Visible;
         ReportButton.Visibility = done ? Visibility.Visible : Visibility.Collapsed;
         if (done)
         {
             Tick();
             _timer.Stop();
             // Abre o relatório sozinho, como no fluxo do protótipo
-            if (r.State != RunState.Canceled) App.Shell.Navigate("report");
+            if (r.State != RunState.Canceled)
+                App.Shell.Navigate("report");
         }
     }
 
@@ -79,16 +100,38 @@ public sealed partial class ProgressPage : Page
         NowText.Inlines.Clear();
         if (r.IsFinished)
         {
-            NowText.Inlines.Add(new Run { Text = r.State == RunState.Completed ? L.T("Tudo pronto") : L.T("Parado") });
+            NowText.Inlines.Add(
+                new Run
+                {
+                    Text = r.State == RunState.Completed ? L.T("Tudo pronto") : L.T("Parado"),
+                }
+            );
         }
         else
         {
-            NowText.Inlines.Add(new Run { Text = r.Activity == "integridade" ? L.T("Conferindo ") : r.Spec.IsRestore ? L.T("Restaurando ") : L.T("Copiando ") });
+            NowText.Inlines.Add(
+                new Run
+                {
+                    Text =
+                        r.Activity == "integridade" ? L.T("Conferindo ")
+                        : r.Spec.IsRestore ? L.T("Restaurando ")
+                        : L.T("Copiando "),
+                }
+            );
             NowText.Inlines.Add(new Run { Text = r.Activity, FontWeight = FontWeights.Bold });
             if (!string.IsNullOrEmpty(r.CurrentFile))
             {
                 NowText.Inlines.Add(new Run { Text = " · " });
-                NowText.Inlines.Add(new Run { Text = r.CurrentFile, FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["Mono"], FontSize = 12.5, Foreground = UI.Muted2 });
+                NowText.Inlines.Add(
+                    new Run
+                    {
+                        Text = r.CurrentFile,
+                        FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)
+                            Application.Current.Resources["Mono"],
+                        FontSize = 12.5,
+                        Foreground = UI.Muted2,
+                    }
+                );
             }
         }
 
@@ -102,32 +145,54 @@ public sealed partial class ProgressPage : Page
         _lastTick = now;
 
         var phaseTotal = r.PhaseTotal;
-        BytesText.Text = phaseTotal > 0
-            ? L.F("{0} de {1} · {2:0.0} MB/s", Sys.Bytes(r.PhaseDone), Sys.Bytes(phaseTotal), _speed / 1048576)
-            : L.F("Decorrido: {0}", Sys.Duration(r.Elapsed));
-        if (r.IsFinished) EtaText.Text = L.F("Duração: {0}", Sys.Duration(r.Elapsed));
-        else if (r.State == RunState.Paused) EtaText.Text = L.T("Pausado");
+        BytesText.Text =
+            phaseTotal > 0
+                ? L.F(
+                    "{0} de {1} · {2:0.0} MB/s",
+                    Sys.Bytes(r.PhaseDone),
+                    Sys.Bytes(phaseTotal),
+                    _speed / 1048576
+                )
+                : L.F("Decorrido: {0}", Sys.Duration(r.Elapsed));
+        if (r.IsFinished)
+            EtaText.Text = L.F("Duração: {0}", Sys.Duration(r.Elapsed));
+        else if (r.State == RunState.Paused)
+            EtaText.Text = L.T("Pausado");
         else if (pct is > 1 and < 100)
-            EtaText.Text = L.F("Tempo restante: {0}", Sys.Duration(TimeSpan.FromSeconds(r.Elapsed.TotalSeconds * (100 - pct) / pct)));
-        else EtaText.Text = L.T("Tempo restante: calculando…");
+            EtaText.Text = L.F(
+                "Tempo restante: {0}",
+                Sys.Duration(TimeSpan.FromSeconds(r.Elapsed.TotalSeconds * (100 - pct) / pct))
+            );
+        else
+            EtaText.Text = L.T("Tempo restante: calculando…");
     }
 
     void OnPause(object sender, RoutedEventArgs e)
     {
-        if (_runner!.State == RunState.Paused) _runner.Resume();
-        else _runner.Pause();
+        if (_runner!.State == RunState.Paused)
+            _runner.Resume();
+        else
+            _runner.Pause();
     }
 
     async void OnCancel(object sender, RoutedEventArgs e)
     {
-        var ok = await Dialogs.ConfirmAsync(XamlRoot, L.T("Cancelar agora?"),
-            L.T("O que já foi copiado fica no destino, mas esta versão fica incompleta."), L.T("Cancelar tarefa"), L.T("Continuar"), danger: true);
-        if (ok) _runner!.Cancel();
+        var ok = await Dialogs.ConfirmAsync(
+            XamlRoot,
+            L.T("Cancelar agora?"),
+            L.T("O que já foi copiado fica no destino, mas esta versão fica incompleta."),
+            L.T("Cancelar tarefa"),
+            L.T("Continuar"),
+            danger: true
+        );
+        if (ok)
+            _runner!.Cancel();
     }
 
     void OnOpenLog(object sender, RoutedEventArgs e)
     {
-        if (_runner?.LogPath is { Length: > 0 } p && File.Exists(p)) Sys.Open(p);
+        if (_runner?.LogPath is { Length: > 0 } p && File.Exists(p))
+            Sys.Open(p);
     }
 
     void OnReport(object sender, RoutedEventArgs e) => App.Shell.Navigate("report");

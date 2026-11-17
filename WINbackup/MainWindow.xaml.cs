@@ -5,12 +5,12 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Animation;
-using Windows.Graphics;
 using WINbackup.Backup;
 using WINbackup.Controls;
 using WINbackup.Models;
 using WINbackup.Pages;
 using WINbackup.Services;
+using Windows.Graphics;
 
 namespace WINbackup;
 
@@ -51,7 +51,13 @@ public sealed partial class MainWindow : Window
 
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "WINbackup.ico"));
         SizeAndCenter();
-        Root.Loaded += (_, _) => AdminBadge.Margin = new Thickness(0, 0, AppWindow.TitleBar.RightInset / Root.XamlRoot.RasterizationScale + 12, 0);
+        Root.Loaded += (_, _) =>
+            AdminBadge.Margin = new Thickness(
+                0,
+                0,
+                AppWindow.TitleBar.RightInset / Root.XamlRoot.RasterizationScale + 12,
+                0
+            );
         AppWindow.Closing += OnClosing;
         Closed += (_, _) => Notifier.Shutdown();
 
@@ -62,7 +68,11 @@ public sealed partial class MainWindow : Window
         // Sem isto o WinUI mostra o tooltip "Alt+Esquerda" ao passar o mouse em qualquer parte da janela
         Root.KeyboardAcceleratorPlacementMode = KeyboardAcceleratorPlacementMode.Hidden;
         // Botão "voltar" lateral do mouse
-        Root.PointerPressed += (_, e) => { if (e.GetCurrentPoint(Root).Properties.IsXButton1Pressed) GoBack(); };
+        Root.PointerPressed += (_, e) =>
+        {
+            if (e.GetCurrentPoint(Root).Properties.IsXButton1Pressed)
+                GoBack();
+        };
         Navigate("home");
     }
 
@@ -102,7 +112,10 @@ public sealed partial class MainWindow : Window
         AdminIcon.Foreground = UI.Warn;
         AdminBadge.Background = UI.Brush("#1d1608");
         AdminBadge.BorderBrush = UI.Brush("#5c4413");
-        ToolTipService.SetToolTip(AdminBadge, L.T("Abra o WINbackup como administrador para salvar drivers e arquivos protegidos."));
+        ToolTipService.SetToolTip(
+            AdminBadge,
+            L.T("Abra o WINbackup como administrador para salvar drivers e arquivos protegidos.")
+        );
     }
 
     /// <summary>Refaz o menu e a tela atual depois de trocar o tema ou o idioma.</summary>
@@ -111,16 +124,24 @@ public sealed partial class MainWindow : Window
         ApplyChrome();
         Nav = NewSidebar();
         Nav.Active = _current is "progress" or "report" or null ? "home" : _current;
-        if (_current != null) Navigate(_current, null, back: true);
+        if (_current != null)
+            Navigate(_current, null, back: true);
     }
 
-    public void Navigate(string key, object? parameter = null) => Navigate(key, parameter, back: false);
+    public void Navigate(string key, object? parameter = null) =>
+        Navigate(key, parameter, back: false);
 
     void Navigate(string key, object? parameter, bool back)
     {
-        if (!Pages.TryGetValue(key, out var type)) return;
+        if (!Pages.TryGetValue(key, out var type))
+            return;
         // Em andamento e Relatório são passageiras: voltar nunca leva de novo a elas
-        if (!back && _current != null && _current != key && _current is not ("progress" or "report"))
+        if (
+            !back
+            && _current != null
+            && _current != key
+            && _current is not ("progress" or "report")
+        )
         {
             _history.Push(_current);
         }
@@ -137,7 +158,8 @@ public sealed partial class MainWindow : Window
         while (_history.Count > 0)
         {
             var key = _history.Pop();
-            if (key == _current) continue;
+            if (key == _current)
+                continue;
             Navigate(key, null, back: true);
             return;
         }
@@ -147,15 +169,24 @@ public sealed partial class MainWindow : Window
 
     KeyboardAccelerator BackAccelerator()
     {
-        var k = new KeyboardAccelerator { Key = Windows.System.VirtualKey.Left, Modifiers = Windows.System.VirtualKeyModifiers.Menu };
-        k.Invoked += (_, e) => { GoBack(); e.Handled = true; };
+        var k = new KeyboardAccelerator
+        {
+            Key = Windows.System.VirtualKey.Left,
+            Modifiers = Windows.System.VirtualKeyModifiers.Menu,
+        };
+        k.Invoked += (_, e) =>
+        {
+            GoBack();
+            e.Handled = true;
+        };
         return k;
     }
 
     /// <summary>A barra de título arrasta a janela; o botão Voltar precisa ser liberado para receber cliques.</summary>
     void UpdateTitleBarRegions()
     {
-        if (Root.XamlRoot == null) return;
+        if (Root.XamlRoot == null)
+            return;
         var source = InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
         if (BackButton.Visibility != Visibility.Visible || BackButton.ActualWidth == 0)
         {
@@ -163,9 +194,20 @@ public sealed partial class MainWindow : Window
             return;
         }
         var scale = Root.XamlRoot.RasterizationScale;
-        var p = BackButton.TransformToVisual(Root).TransformPoint(new Windows.Foundation.Point(0, 0));
-        source.SetRegionRects(NonClientRegionKind.Passthrough,
-            [new RectInt32((int)(p.X * scale), (int)(p.Y * scale), (int)(BackButton.ActualWidth * scale), (int)(BackButton.ActualHeight * scale))]);
+        var p = BackButton
+            .TransformToVisual(Root)
+            .TransformPoint(new Windows.Foundation.Point(0, 0));
+        source.SetRegionRects(
+            NonClientRegionKind.Passthrough,
+            [
+                new RectInt32(
+                    (int)(p.X * scale),
+                    (int)(p.Y * scale),
+                    (int)(BackButton.ActualWidth * scale),
+                    (int)(BackButton.ActualHeight * scale)
+                ),
+            ]
+        );
     }
 
     /// <summary>Começa uma tarefa e abre a tela Em andamento.</summary>
@@ -182,7 +224,8 @@ public sealed partial class MainWindow : Window
 
     public void Minimize()
     {
-        if (AppWindow.Presenter is OverlappedPresenter p) p.Minimize();
+        if (AppWindow.Presenter is OverlappedPresenter p)
+            p.Minimize();
     }
 
     public void BringToFront()
@@ -198,7 +241,9 @@ public sealed partial class MainWindow : Window
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
         var w = Math.Min((int)(1280 * scale), area.Width);
         var h = Math.Min((int)(800 * scale), area.Height);
-        AppWindow.MoveAndResize(new RectInt32(area.X + (area.Width - w) / 2, area.Y + (area.Height - h) / 2, w, h));
+        AppWindow.MoveAndResize(
+            new RectInt32(area.X + (area.Width - w) / 2, area.Y + (area.Height - h) / 2, w, h)
+        );
         if (AppWindow.Presenter is OverlappedPresenter p)
         {
             p.PreferredMinimumWidth = (int)(1040 * scale);
@@ -208,12 +253,21 @@ public sealed partial class MainWindow : Window
 
     async void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
-        if (_closeConfirmed || BackupRunner.Current is not { IsFinished: false } runner) return;
+        if (_closeConfirmed || BackupRunner.Current is not { IsFinished: false } runner)
+            return;
         args.Cancel = true;
-        var ok = await Dialogs.ConfirmAsync(Root.XamlRoot, L.T("Cancelar e sair?"),
-            L.T("Ainda há uma tarefa em andamento. Se sair agora, ela será cancelada e a versão ficará incompleta."),
-            L.T("Cancelar e sair"), L.T("Continuar"), danger: true);
-        if (!ok) return;
+        var ok = await Dialogs.ConfirmAsync(
+            Root.XamlRoot,
+            L.T("Cancelar e sair?"),
+            L.T(
+                "Ainda há uma tarefa em andamento. Se sair agora, ela será cancelada e a versão ficará incompleta."
+            ),
+            L.T("Cancelar e sair"),
+            L.T("Continuar"),
+            danger: true
+        );
+        if (!ok)
+            return;
         runner.Cancel();
         _closeConfirmed = true;
         Close();

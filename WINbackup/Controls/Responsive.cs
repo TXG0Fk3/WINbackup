@@ -13,17 +13,22 @@ public static class Responsive
     {
         var widths = grid.ColumnDefinitions.Select(c => c.Width).ToList();
         var columns = grid.Children.OfType<FrameworkElement>().ToDictionary(e => e, Grid.GetColumn);
-        while (grid.RowDefinitions.Count < widths.Count) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        while (grid.RowDefinitions.Count < widths.Count)
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         bool? narrow = null;
 
         grid.SizeChanged += (_, e) =>
         {
             var now = e.NewSize.Width < minWidth;
-            if (now == narrow) return;
+            if (now == narrow)
+                return;
             narrow = now;
             grid.RowSpacing = now ? grid.ColumnSpacing : 0;
             for (var i = 0; i < widths.Count; i++)
-                grid.ColumnDefinitions[i].Width = !now ? widths[i] : i == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+                grid.ColumnDefinitions[i].Width =
+                    !now ? widths[i]
+                    : i == 0 ? new GridLength(1, GridUnitType.Star)
+                    : new GridLength(0);
             foreach (var (child, col) in columns)
             {
                 Grid.SetColumn(child, now ? 0 : col);

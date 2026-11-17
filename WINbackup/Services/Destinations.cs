@@ -16,10 +16,17 @@ public static partial class Destinations
         {
             try
             {
-                if (!d.IsReady || string.Equals(d.Name, system, StringComparison.OrdinalIgnoreCase)) continue;
-                if (d.DriveType is not (DriveType.Fixed or DriveType.Removable)) continue;
-                list.Add(new DestOption(LabelFor(d), System.IO.Path.Combine(d.Name, "Backup"),
-                    d.DriveType == DriveType.Network ? Icons.Network : Icons.Drive));
+                if (!d.IsReady || string.Equals(d.Name, system, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (d.DriveType is not (DriveType.Fixed or DriveType.Removable))
+                    continue;
+                list.Add(
+                    new DestOption(
+                        LabelFor(d),
+                        System.IO.Path.Combine(d.Name, "Backup"),
+                        d.DriveType == DriveType.Network ? Icons.Network : Icons.Drive
+                    )
+                );
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
@@ -30,7 +37,8 @@ public static partial class Destinations
     static string LabelFor(DriveInfo d)
     {
         var letter = d.Name.TrimEnd('\\');
-        if (!string.IsNullOrWhiteSpace(d.VolumeLabel)) return $"{d.VolumeLabel} ({letter})";
+        if (!string.IsNullOrWhiteSpace(d.VolumeLabel))
+            return $"{d.VolumeLabel} ({letter})";
         return d.DriveType switch
         {
             DriveType.Removable => L.F("Disco removível ({0})", letter),
@@ -42,17 +50,22 @@ public static partial class Destinations
     /// <summary>Nome amigável para qualquer caminho (inclusive pastas escolhidas à mão).</summary>
     public static DestOption Describe(string path)
     {
-        if (string.IsNullOrEmpty(path)) return new DestOption(L.T("Nenhum destino"), L.T("Escolha onde salvar"), Icons.Drive);
-        var match = Candidates().FirstOrDefault(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase));
-        if (match != null) return match;
-        if (path.StartsWith(@"\\")) return new DestOption("Pasta na rede", path, Icons.Network);
+        if (string.IsNullOrEmpty(path))
+            return new DestOption(L.T("Nenhum destino"), L.T("Escolha onde salvar"), Icons.Drive);
+        var match = Candidates()
+            .FirstOrDefault(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase));
+        if (match != null)
+            return match;
+        if (path.StartsWith(@"\\"))
+            return new DestOption("Pasta na rede", path, Icons.Network);
         try
         {
             var root = System.IO.Path.GetPathRoot(path);
             if (root != null)
             {
                 var d = new DriveInfo(root);
-                if (d.IsReady) return new DestOption(LabelFor(d), path, Icons.Drive);
+                if (d.IsReady)
+                    return new DestOption(LabelFor(d), path, Icons.Drive);
             }
         }
         catch (ArgumentException) { }
@@ -63,19 +76,32 @@ public static partial class Destinations
     /// <summary>Espaço livre e total do volume do caminho (funciona com caminhos de rede).</summary>
     public static (long Free, long Total)? Space(string path)
     {
-        if (string.IsNullOrEmpty(path)) return null;
+        if (string.IsNullOrEmpty(path))
+            return null;
         var probe = path;
         while (!string.IsNullOrEmpty(probe) && !Directory.Exists(probe))
             probe = System.IO.Path.GetDirectoryName(probe);
-        if (string.IsNullOrEmpty(probe)) probe = System.IO.Path.GetPathRoot(path);
-        if (string.IsNullOrEmpty(probe)) return null;
-        if (!GetDiskFreeSpaceEx(probe, out var free, out var total, out _)) return null;
+        if (string.IsNullOrEmpty(probe))
+            probe = System.IO.Path.GetPathRoot(path);
+        if (string.IsNullOrEmpty(probe))
+            return null;
+        if (!GetDiskFreeSpaceEx(probe, out var free, out var total, out _))
+            return null;
         return ((long)free, (long)total);
     }
 
-    [LibraryImport("kernel32.dll", EntryPoint = "GetDiskFreeSpaceExW", StringMarshalling = StringMarshalling.Utf16)]
+    [LibraryImport(
+        "kernel32.dll",
+        EntryPoint = "GetDiskFreeSpaceExW",
+        StringMarshalling = StringMarshalling.Utf16
+    )]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetDiskFreeSpaceEx(string dir, out ulong freeForCaller, out ulong total, out ulong totalFree);
+    private static partial bool GetDiskFreeSpaceEx(
+        string dir,
+        out ulong freeForCaller,
+        out ulong total,
+        out ulong totalFree
+    );
 
     /// <summary>
     /// Pasta com versões (WINbackup_*) a partir de um caminho escolhido: a própria pasta, a pasta acima de uma versão
@@ -83,11 +109,17 @@ public static partial class Destinations
     /// </summary>
     public static string? BackupRoot(string? path)
     {
-        if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return null;
+        if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            return null;
         // Uma versão escolhida direto (com qualquer nome): a pasta de backups é a de cima
-        if (IsVersion(path) && System.IO.Path.GetDirectoryName(path.TrimEnd('\\')) is { } parent) return parent;
-        if (Versions(path).Count > 0) return path;
-        return Subdirs(path).Where(d => Versions(d).Count > 0).OrderByDescending(Newest).FirstOrDefault();
+        if (IsVersion(path) && System.IO.Path.GetDirectoryName(path.TrimEnd('\\')) is { } parent)
+            return parent;
+        if (Versions(path).Count > 0)
+            return path;
+        return Subdirs(path)
+            .Where(d => Versions(d).Count > 0)
+            .OrderByDescending(Newest)
+            .FirstOrDefault();
     }
 
     /// <summary>Procura backups nos discos conectados (raiz e um nível abaixo); devolve a pasta com a versão mais nova.</summary>
@@ -98,7 +130,12 @@ public static partial class Destinations
         {
             try
             {
-                if (!d.IsReady || d.DriveType is not (DriveType.Fixed or DriveType.Removable or DriveType.Network)) continue;
+                if (
+                    !d.IsReady
+                    || d.DriveType
+                        is not (DriveType.Fixed or DriveType.Removable or DriveType.Network)
+                )
+                    continue;
                 roots.Add(d.RootDirectory.FullName);
                 roots.AddRange(Subdirs(d.RootDirectory.FullName));
             }
@@ -110,34 +147,58 @@ public static partial class Destinations
 
     /// <summary>De onde restaurar: a pasta escolhida em Restaurar backup, o destino dos backups ou o que achar nos discos.</summary>
     public static string? RestoreFolder() =>
-        BackupRoot(Settings.Data.RestoreFrom) ?? BackupRoot(Settings.Data.Destination) ?? FindBackups();
+        BackupRoot(Settings.Data.RestoreFrom)
+        ?? BackupRoot(Settings.Data.Destination)
+        ?? FindBackups();
 
-    static DateTime Newest(string root) => Versions(root).Select(VersionDate).FirstOrDefault() ?? DateTime.MinValue;
+    static DateTime Newest(string root) =>
+        Versions(root).Select(VersionDate).FirstOrDefault() ?? DateTime.MinValue;
 
     static string[] Subdirs(string path)
     {
-        try { return Directory.GetDirectories(path); }
-        catch (Exception) { return []; }
+        try
+        {
+            return Directory.GetDirectories(path);
+        }
+        catch (Exception)
+        {
+            return [];
+        }
     }
 
     /// <summary>Pasta de uma versão: tem o manifest.json do WINbackup ou o nome WINbackup_* (versão cancelada pode não ter manifesto).</summary>
     public static bool IsVersion(string path) =>
-        File.Exists(System.IO.Path.Combine(path, Backup.Manifest.FileName)) ||
-        System.IO.Path.GetFileName(path.TrimEnd('\\')).StartsWith("WINbackup_", StringComparison.OrdinalIgnoreCase);
+        File.Exists(System.IO.Path.Combine(path, Backup.Manifest.FileName))
+        || System
+            .IO.Path.GetFileName(path.TrimEnd('\\'))
+            .StartsWith("WINbackup_", StringComparison.OrdinalIgnoreCase);
 
-    static readonly Dictionary<string, (DateTime Stamp, DateTime? Date)> Dates = new(StringComparer.OrdinalIgnoreCase);
+    static readonly Dictionary<string, (DateTime Stamp, DateTime? Date)> Dates = new(
+        StringComparer.OrdinalIgnoreCase
+    );
 
     /// <summary>Data da versão: pelo nome WINbackup_AAAA-MM-DD_HH-MM-SS ou, se a pasta foi renomeada, pelo manifesto.</summary>
     public static DateTime? VersionDate(string versionPath)
     {
         var name = System.IO.Path.GetFileName(versionPath.TrimEnd('\\')).Replace("WINbackup_", "");
-        if (DateTime.TryParseExact(name, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var d)) return d;
+        if (
+            DateTime.TryParseExact(
+                name,
+                "yyyy-MM-dd_HH-mm-ss",
+                null,
+                System.Globalization.DateTimeStyles.None,
+                out var d
+            )
+        )
+            return d;
         var file = System.IO.Path.Combine(versionPath, Backup.Manifest.FileName);
-        if (!File.Exists(file)) return null;
+        if (!File.Exists(file))
+            return null;
         var stamp = File.GetLastWriteTimeUtc(file);
         lock (Dates)
         {
-            if (Dates.TryGetValue(versionPath, out var hit) && hit.Stamp == stamp) return hit.Date;
+            if (Dates.TryGetValue(versionPath, out var hit) && hit.Stamp == stamp)
+                return hit.Date;
             var date = Backup.Manifest.Load(versionPath)?.CreatedAt;
             Dates[versionPath] = (stamp, date);
             return date;
@@ -150,9 +211,14 @@ public static partial class Destinations
         dest ??= Settings.Data.Destination;
         try
         {
-            if (string.IsNullOrEmpty(dest) || !Directory.Exists(dest)) return new();
-            return Directory.GetDirectories(dest).Where(IsVersion)
-                .OrderByDescending(v => VersionDate(v) ?? DateTime.MinValue).ThenByDescending(v => v, StringComparer.OrdinalIgnoreCase).ToList();
+            if (string.IsNullOrEmpty(dest) || !Directory.Exists(dest))
+                return new();
+            return Directory
+                .GetDirectories(dest)
+                .Where(IsVersion)
+                .OrderByDescending(v => VersionDate(v) ?? DateTime.MinValue)
+                .ThenByDescending(v => v, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
         catch (Exception)
         {

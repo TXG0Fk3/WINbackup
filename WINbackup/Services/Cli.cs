@@ -15,11 +15,14 @@ public static class Cli
 {
     public static bool TryRun(string[] args)
     {
-        if (args.Length == 0) return false;
+        if (args.Length == 0)
+            return false;
         string? Get(string name)
         {
             var i = Array.FindIndex(args, a => a.Equals(name, StringComparison.OrdinalIgnoreCase));
-            return i >= 0 && i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[i + 1] : null;
+            return i >= 0 && i + 1 < args.Length && !args[i + 1].StartsWith("--")
+                ? args[i + 1]
+                : null;
         }
         bool Has(string name) => args.Any(a => a.Equals(name, StringComparison.OrdinalIgnoreCase));
 
@@ -35,30 +38,73 @@ public static class Cli
         if (Get("--schedule") is { } id)
         {
             schedule = Settings.Data.Schedules.FirstOrDefault(s => s.Id == id);
-            if (schedule == null) { Exit(2); return true; }
+            if (schedule == null)
+            {
+                Exit(2);
+                return true;
+            }
             spec = FromSchedule(schedule);
-            if (spec == null) { Exit(0); return true; }
+            if (spec == null)
+            {
+                Exit(0);
+                return true;
+            }
             silent = true;
         }
         else if (Get("--preset") is { } slug)
         {
-            var index = Array.FindIndex(Presets.All, p => p.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase));
-            if (index < 0) { Fail(L.F("Preset desconhecido: {0}. Use: {1}.", slug, string.Join(", ", Presets.All.Select(p => p.Slug)))); return true; }
+            var index = Array.FindIndex(Presets.All, p =>
+                p.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase)
+            );
+            if (index < 0)
+            {
+                Fail(
+                    L.F(
+                        "Preset desconhecido: {0}. Use: {1}.",
+                        slug,
+                        string.Join(", ", Presets.All.Select(p => p.Slug))
+                    )
+                );
+                return true;
+            }
             spec = Presets.Build(index, Get("--dest"), Has("--full") ? false : null);
         }
         else if (Get("--only") is { } only)
         {
-            spec = Only(only.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), Get("--dest"));
-            if (spec == null) { Fail(L.T("Módulos válidos em --only: files, creators, apps, configs, games, browsers, drivers.")); return true; }
+            spec = Only(
+                only.Split(
+                    ',',
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+                ),
+                Get("--dest")
+            );
+            if (spec == null)
+            {
+                Fail(
+                    L.T(
+                        "Módulos válidos em --only: files, creators, apps, configs, games, browsers, drivers."
+                    )
+                );
+                return true;
+            }
         }
         else if (Get("--restore") is { } from)
         {
             var plan = RestorePlan.Latest(Destinations.BackupRoot(from) ?? from);
-            if (plan.Empty) { Fail(L.F("Nenhum backup do WINbackup em {0}.", from)); return true; }
+            if (plan.Empty)
+            {
+                Fail(L.F("Nenhum backup do WINbackup em {0}.", from));
+                return true;
+            }
             spec = new JobSpec
             {
-                Kind = JobKind.Restore, Title = "Pós-formatação", RestoreSources = plan.Sources(),
-                Target = RestoreTarget.Original, Conflict = ConflictMode.Skip, NoReboot = Has("--no-reboot"), KeepBrowsersOpen = Has("--keep-browsers"),
+                Kind = JobKind.Restore,
+                Title = "Pós-formatação",
+                RestoreSources = plan.Sources(),
+                Target = RestoreTarget.Original,
+                Conflict = ConflictMode.Skip,
+                NoReboot = Has("--no-reboot"),
+                KeepBrowsersOpen = Has("--keep-browsers"),
             };
         }
         else
@@ -66,22 +112,41 @@ public static class Cli
             return false;
         }
 
-        if (spec.Kind == JobKind.Backup && string.IsNullOrEmpty(spec.Destination)) { Fail(L.T("Sem destino: use --dest ou escolha o destino no app.")); return true; }
-        if (BackupRunner.IsAnotherRunning()) { Exit(3); return true; }
+        if (spec.Kind == JobKind.Backup && string.IsNullOrEmpty(spec.Destination))
+        {
+            Fail(L.T("Sem destino: use --dest ou escolha o destino no app."));
+            return true;
+        }
+        if (BackupRunner.IsAnotherRunning())
+        {
+            Exit(3);
+            return true;
+        }
 
         App.Shell.Activate();
-        if (silent) App.Shell.Minimize();
+        if (silent)
+            App.Shell.Minimize();
         App.Shell.Run(spec);
         var runner = BackupRunner.Current!;
         runner.StateChanged += () =>
         {
-            if (!runner.IsFinished) return;
-            if (!silent) return;
+            if (!runner.IsFinished)
+                return;
+            if (!silent)
+                return;
             var code = runner.State == RunState.Completed && runner.ErrorCount == 0 ? 0 : 1;
             // Pós-formatação sem perguntas: reinicia se os drivers pedirem (60 s para cancelar com "shutdown /a")
             if (runner.RebootRequired && !runner.Spec.NoReboot)
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Proc.SystemExe("shutdown.exe"),
-                    "/r /t 60 /c \"WINbackup: reiniciando para terminar a instalação dos drivers\"") { CreateNoWindow = true, UseShellExecute = false });
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(
+                        Proc.SystemExe("shutdown.exe"),
+                        "/r /t 60 /c \"WINbackup: reiniciando para terminar a instalação dos drivers\""
+                    )
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                    }
+                );
             Exit(code, TimeSpan.FromSeconds(10));
         };
         return true;
@@ -95,8 +160,10 @@ public static class Cli
         {
             // O evento de disco conectado chega várias vezes: só segue se for o disco certo e não rodou agora há pouco
             var root = s.VolumeId == null ? null : Scheduler.RootOf(s.VolumeId);
-            if (root == null) return null;
-            if (s.LastRun is { } last && DateTime.Now - last < TimeSpan.FromMinutes(30)) return null;
+            if (root == null)
+                return null;
+            if (s.LastRun is { } last && DateTime.Now - last < TimeSpan.FromMinutes(30))
+                return null;
             dest = Path.Combine(root, s.VolumeSubPath ?? "Backup");
         }
         else if (s.Kind == "logon" && s.LastRun?.Date == DateTime.Today)
@@ -104,7 +171,8 @@ public static class Cli
             return null;
         }
         var index = Array.FindIndex(Presets.All, p => p.Slug == s.Preset);
-        if (index < 0) return null;
+        if (index < 0)
+            return null;
         s.LastRun = DateTime.Now;
         Settings.Save();
         return Presets.Build(index, dest, s.Incremental);
@@ -112,21 +180,48 @@ public static class Cli
 
     static JobSpec? Only(string[] modules, string? dest)
     {
-        var valid = new[] { "files", "creators", "apps", "configs", "games", "browsers", "drivers" };
-        if (modules.Length == 0 || modules.Any(m => !valid.Contains(m, StringComparer.OrdinalIgnoreCase))) return null;
+        var valid = new[]
+        {
+            "files",
+            "creators",
+            "apps",
+            "configs",
+            "games",
+            "browsers",
+            "drivers",
+        };
+        if (
+            modules.Length == 0
+            || modules.Any(m => !valid.Contains(m, StringComparer.OrdinalIgnoreCase))
+        )
+            return null;
         bool On(string m) => modules.Contains(m, StringComparer.OrdinalIgnoreCase);
         var folders = new List<FolderSpec>();
-        if (On("files")) folders.AddRange(PersonalFolders.Selected());
-        if (On("creators")) folders.AddRange(CreatorApps.SelectedFolders());
-        if (On("configs")) folders.AddRange(ConfigsModule.SelectedAppFolders());
-        if (On("games")) folders.AddRange(GamesModule.SelectedFolders());
-        if (On("browsers")) folders.AddRange(BrowsersModule.SelectedFolders());
+        if (On("files"))
+            folders.AddRange(PersonalFolders.Selected());
+        if (On("creators"))
+            folders.AddRange(CreatorApps.SelectedFolders());
+        if (On("configs"))
+            folders.AddRange(ConfigsModule.SelectedAppFolders());
+        if (On("games"))
+            folders.AddRange(GamesModule.SelectedFolders());
+        if (On("browsers"))
+            folders.AddRange(BrowsersModule.SelectedFolders());
         return new JobSpec
         {
-            Title = "Linha de comando: " + string.Join(", ", modules), FilesLabel = "Arquivos e configurações",
-            Destination = dest ?? Settings.Data.Destination, Folders = folders,
-            Exclusions = Settings.Data.Exclusions.Concat(CreatorApps.Exclusions).Concat(ConfigsModule.Exclusions).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
-            Programs = On("apps"), Drivers = On("drivers"), Browsers = On("browsers"), Games = On("games"),
+            Title = "Linha de comando: " + string.Join(", ", modules),
+            FilesLabel = "Arquivos e configurações",
+            Destination = dest ?? Settings.Data.Destination,
+            Folders = folders,
+            Exclusions = Settings
+                .Data.Exclusions.Concat(CreatorApps.Exclusions)
+                .Concat(ConfigsModule.Exclusions)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            Programs = On("apps"),
+            Drivers = On("drivers"),
+            Browsers = On("browsers"),
+            Games = On("games"),
             WindowsKeys = On("configs") ? Presets.WindowsKeys() : [],
         };
     }
@@ -136,14 +231,21 @@ public static class Cli
     {
         var days = DaysSinceLastBackup();
         if (Settings.Data.NotifyReminder && days is null or > 30)
-            Notifier.Show(days == null ? L.T("Você ainda não fez backup") : L.F("Faz {0} dias desde o último backup", days),
-                L.T("Abra o WINbackup para salvar seus arquivos antes que algo aconteça."));
+            Notifier.Show(
+                days == null
+                    ? L.T("Você ainda não fez backup")
+                    : L.F("Faz {0} dias desde o último backup", days),
+                L.T("Abra o WINbackup para salvar seus arquivos antes que algo aconteça.")
+            );
         Exit(0, TimeSpan.FromSeconds(20));
     }
 
     public static int? DaysSinceLastBackup()
     {
-        var last = Destinations.Versions().Select(v => Pages.HomePage.VersionDate(v)).FirstOrDefault(d => d != null);
+        var last = Destinations
+            .Versions()
+            .Select(v => Pages.HomePage.VersionDate(v))
+            .FirstOrDefault(d => d != null);
         return last == null ? null : (int)(DateTime.Now - last.Value).TotalDays;
     }
 
@@ -153,7 +255,11 @@ public static class Cli
         App.Shell.DispatcherQueue.TryEnqueue(async () =>
         {
             await Task.Delay(500);
-            await Controls.Dialogs.InfoAsync(App.Shell.Content.XamlRoot, L.T("Linha de comando"), message);
+            await Controls.Dialogs.InfoAsync(
+                App.Shell.Content.XamlRoot,
+                L.T("Linha de comando"),
+                message
+            );
         });
     }
 

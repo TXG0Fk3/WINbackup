@@ -35,7 +35,10 @@ public sealed partial class AppsPage : Page
         {
             programs = await ProgramsModule.ListAsync(_cts.Token);
         }
-        catch (OperationCanceledException) { return; }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
         catch (Exception ex)
         {
             LoadingText.Text = ex.Message;
@@ -44,24 +47,33 @@ public sealed partial class AppsPage : Page
         }
 
         var off = Settings.Data.ProgramsOff.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        _all = programs.Select(p =>
-        {
-            var (label, bg, fg) = p.Source switch
+        _all = programs
+            .Select(p =>
             {
-                "winget" => ("winget", "#0b2a2e", "#7befff"),
-                "msstore" => (L.T("Microsoft Store"), "#12203d", "#9fc3ff"),
-                _ => (L.T("Sem pacote"), "#2a1f0b", "#ffd89a"),
-            };
-            var item = new CheckItem
-            {
-                Key = p.Id, Title = p.Name, Col1 = p.Id, Col3 = p.Packaged ? p.Source : "none",
-                Col2 = p.Available.Length > 0 ? $"{p.Version} → {p.Available}" : p.Version,
-                Meta = label, MetaBrush = UI.Brush(fg), Fill = UI.Brush(bg), Data = p,
-                Enabled = p.Packaged, IsChecked = p.Packaged && !off.Contains(p.Id),
-            };
-            item.Changed += OnToggle;
-            return item;
-        }).ToList();
+                var (label, bg, fg) = p.Source switch
+                {
+                    "winget" => ("winget", "#0b2a2e", "#7befff"),
+                    "msstore" => (L.T("Microsoft Store"), "#12203d", "#9fc3ff"),
+                    _ => (L.T("Sem pacote"), "#2a1f0b", "#ffd89a"),
+                };
+                var item = new CheckItem
+                {
+                    Key = p.Id,
+                    Title = p.Name,
+                    Col1 = p.Id,
+                    Col3 = p.Packaged ? p.Source : "none",
+                    Col2 = p.Available.Length > 0 ? $"{p.Version} → {p.Available}" : p.Version,
+                    Meta = label,
+                    MetaBrush = UI.Brush(fg),
+                    Fill = UI.Brush(bg),
+                    Data = p,
+                    Enabled = p.Packaged,
+                    IsChecked = p.Packaged && !off.Contains(p.Id),
+                };
+                item.Changed += OnToggle;
+                return item;
+            })
+            .ToList();
 
         StatAll.Text = _all.Count.ToString();
         StatAuto.Text = _all.Count(i => i.Enabled).ToString();
@@ -75,7 +87,8 @@ public sealed partial class AppsPage : Page
     {
         var off = Settings.Data.ProgramsOff;
         off.RemoveAll(id => string.Equals(id, item.Key, StringComparison.OrdinalIgnoreCase));
-        if (!item.IsChecked) off.Add(item.Key);
+        if (!item.IsChecked)
+            off.Add(item.Key);
         Settings.Save();
         Count();
     }
@@ -84,8 +97,16 @@ public sealed partial class AppsPage : Page
     {
         var q = Search.Text.Trim();
         _rows.Clear();
-        foreach (var i in _all.Where(i => (_filter == "all" || i.Col3 == _filter) &&
-                                          (q.Length == 0 || i.Title.Contains(q, StringComparison.OrdinalIgnoreCase) || i.Col1.Contains(q, StringComparison.OrdinalIgnoreCase))))
+        foreach (
+            var i in _all.Where(i =>
+                (_filter == "all" || i.Col3 == _filter)
+                && (
+                    q.Length == 0
+                    || i.Title.Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || i.Col1.Contains(q, StringComparison.OrdinalIgnoreCase)
+                )
+            )
+        )
             _rows.Add(i);
         Count();
     }
@@ -97,15 +118,23 @@ public sealed partial class AppsPage : Page
         SaveButton.IsEnabled = n > 0;
     }
 
-    HashSet<string> ChosenIds() => _all.Where(i => i.Enabled && i.IsChecked).Select(i => i.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    HashSet<string> ChosenIds() =>
+        _all.Where(i => i.Enabled && i.IsChecked)
+            .Select(i => i.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     void OnFilter(object sender, RoutedEventArgs e)
     {
         _filter = (string)((FrameworkElement)sender).Tag;
-        if (Rows != null) Apply();
+        if (Rows != null)
+            Apply();
     }
 
-    void OnSearch(object sender, TextChangedEventArgs e) { if (Rows != null) Apply(); }
+    void OnSearch(object sender, TextChangedEventArgs e)
+    {
+        if (Rows != null)
+            Apply();
+    }
 
     void OnScan(object sender, RoutedEventArgs e) => _ = LoadAsync();
 
@@ -113,7 +142,13 @@ public sealed partial class AppsPage : Page
     {
         if (string.IsNullOrEmpty(Settings.Data.Destination))
         {
-            await Dialogs.InfoAsync(XamlRoot, L.T("Escolha o destino"), L.T("Clique em Destino dos backups, no menu lateral, e escolha um HD externo ou uma pasta."));
+            await Dialogs.InfoAsync(
+                XamlRoot,
+                L.T("Escolha o destino"),
+                L.T(
+                    "Clique em Destino dos backups, no menu lateral, e escolha um HD externo ou uma pasta."
+                )
+            );
             return;
         }
         App.Shell.Run(new JobSpec { Title = "Programas", Programs = true });
@@ -122,13 +157,22 @@ public sealed partial class AppsPage : Page
     async void OnExport(object sender, RoutedEventArgs e)
     {
         var folder = FileDialog.PickFolder(L.T("Salvar Programas.json nesta pasta"));
-        if (folder == null) return;
+        if (folder == null)
+            return;
         var target = Path.Combine(folder, "Programas.json");
         ExportButton.IsEnabled = false;
         try
         {
             var n = await ProgramsModule.ExportAsync(target, ChosenIds(), _cts.Token);
-            await Dialogs.InfoAsync(XamlRoot, L.T("Lista exportada"), L.F("{0} programas salvos em {1}. Para instalar em outro PC: Programas → Importar lista e instalar.", n, target));
+            await Dialogs.InfoAsync(
+                XamlRoot,
+                L.T("Lista exportada"),
+                L.F(
+                    "{0} programas salvos em {1}. Para instalar em outro PC: Programas → Importar lista e instalar.",
+                    n,
+                    target
+                )
+            );
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -142,8 +186,13 @@ public sealed partial class AppsPage : Page
 
     async void OnImport(object sender, RoutedEventArgs e)
     {
-        var file = FileDialog.PickFile(L.T("Lista de programas para instalar"), L.T("Lista do winget (*.json)"), "*.json");
-        if (file == null) return;
+        var file = FileDialog.PickFile(
+            L.T("Lista de programas para instalar"),
+            L.T("Lista do winget (*.json)"),
+            "*.json"
+        );
+        if (file == null)
+            return;
         List<(string Id, string Source)> packages;
         try
         {
@@ -151,22 +200,40 @@ public sealed partial class AppsPage : Page
         }
         catch (Exception ex)
         {
-            await Dialogs.InfoAsync(XamlRoot, L.T("Arquivo inválido"), L.T("Esse arquivo não parece uma lista do winget (Programas.json). ") + ex.Message);
+            await Dialogs.InfoAsync(
+                XamlRoot,
+                L.T("Arquivo inválido"),
+                L.T("Esse arquivo não parece uma lista do winget (Programas.json). ") + ex.Message
+            );
             return;
         }
         if (packages.Count == 0)
         {
-            await Dialogs.InfoAsync(XamlRoot, L.T("Lista vazia"), L.T("Nenhum programa nesse arquivo."));
+            await Dialogs.InfoAsync(
+                XamlRoot,
+                L.T("Lista vazia"),
+                L.T("Nenhum programa nesse arquivo.")
+            );
             return;
         }
-        var ok = await Dialogs.ConfirmAsync(XamlRoot, L.F("Instalar {0} programas?", packages.Count),
-            L.T("Cada programa é baixado e instalado pelo winget, um por vez. Os que já estiverem instalados são pulados. Pode demorar e usar bastante internet."),
-            L.T("Instalar"), L.T("Agora não"));
-        if (!ok) return;
-        App.Shell.Run(new JobSpec
-        {
-            Kind = JobKind.Restore, Title = "Instalar programas",
-            InstallPackages = packages.Select(p => (p.Id, p.Id, p.Source)).ToList(),
-        });
+        var ok = await Dialogs.ConfirmAsync(
+            XamlRoot,
+            L.F("Instalar {0} programas?", packages.Count),
+            L.T(
+                "Cada programa é baixado e instalado pelo winget, um por vez. Os que já estiverem instalados são pulados. Pode demorar e usar bastante internet."
+            ),
+            L.T("Instalar"),
+            L.T("Agora não")
+        );
+        if (!ok)
+            return;
+        App.Shell.Run(
+            new JobSpec
+            {
+                Kind = JobKind.Restore,
+                Title = "Instalar programas",
+                InstallPackages = packages.Select(p => (p.Id, p.Id, p.Source)).ToList(),
+            }
+        );
     }
 }

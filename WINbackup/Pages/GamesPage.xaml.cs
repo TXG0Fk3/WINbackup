@@ -29,18 +29,36 @@ public sealed partial class GamesPage : Page
         {
             S.SkipCloudGames = on;
             // A escolha de "pular nuvem" vale de novo para todos os jogos na nuvem
-            foreach (var g in _found.Where(g => g.Cloud)) S.GamesSelection.Remove(g.Key);
+            foreach (var g in _found.Where(g => g.Cloud))
+                S.GamesSelection.Remove(g.Key);
             Settings.Save();
             _bulk = true;
-            foreach (var i in _games) i.IsChecked = GamesModule.IsSelected((GameSave)i.Data!);
+            foreach (var i in _games)
+                i.IsChecked = GamesModule.IsSelected((GameSave)i.Data!);
             _bulk = false;
             Count();
         };
 
         foreach (var lib in GamesModule.SteamLibraries())
-            LibrariesPanel.Children.Add(new TextBlock { Text = lib, FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["Mono"], FontSize = 12.5, Foreground = UI.Brush("#d5e1f7") });
+            LibrariesPanel.Children.Add(
+                new TextBlock
+                {
+                    Text = lib,
+                    FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)
+                        Application.Current.Resources["Mono"],
+                    FontSize = 12.5,
+                    Foreground = UI.Brush("#d5e1f7"),
+                }
+            );
         if (LibrariesPanel.Children.Count == 0)
-            LibrariesPanel.Children.Add(new TextBlock { Text = L.T("Steam não encontrada."), FontSize = 12.5, Foreground = UI.Muted });
+            LibrariesPanel.Children.Add(
+                new TextBlock
+                {
+                    Text = L.T("Steam não encontrada."),
+                    FontSize = 12.5,
+                    Foreground = UI.Muted,
+                }
+            );
 
         _ = LoadAsync();
     }
@@ -49,27 +67,44 @@ public sealed partial class GamesPage : Page
     {
         Loading.Visibility = Visibility.Visible;
         _found = await Task.Run(GamesModule.Detect);
-        _games = _found.Select(g =>
-        {
-            var i = new CheckItem
+        _games = _found
+            .Select(g =>
             {
-                Key = g.Key, Title = g.Name, Subtitle = Sys.Pretty(g.Path), Col1 = "…", Col2 = L.T(g.Source), Data = g,
-                Meta = g.Cloud ? L.T("Já na nuvem") : L.T("Só local"), MetaBrush = g.Cloud ? UI.NeonSoft : UI.Warn, Flag = g.Cloud,
-                IsChecked = GamesModule.IsSelected(g),
-            };
-            i.Changed += item =>
-            {
-                if (_bulk) return;
-                S.GamesSelection[item.Key] = item.IsChecked;
-                Settings.Save();
-                Count();
-            };
-            return i;
-        }).ToList();
-        foreach (var i in _games) _rows.Add(i);
+                var i = new CheckItem
+                {
+                    Key = g.Key,
+                    Title = g.Name,
+                    Subtitle = Sys.Pretty(g.Path),
+                    Col1 = "…",
+                    Col2 = L.T(g.Source),
+                    Data = g,
+                    Meta = g.Cloud ? L.T("Já na nuvem") : L.T("Só local"),
+                    MetaBrush = g.Cloud ? UI.NeonSoft : UI.Warn,
+                    Flag = g.Cloud,
+                    IsChecked = GamesModule.IsSelected(g),
+                };
+                i.Changed += item =>
+                {
+                    if (_bulk)
+                        return;
+                    S.GamesSelection[item.Key] = item.IsChecked;
+                    Settings.Save();
+                    Count();
+                };
+                return i;
+            })
+            .ToList();
+        foreach (var i in _games)
+            _rows.Add(i);
         Loading.Visibility = Visibility.Collapsed;
 
-        StatLocal.Text = Jogos(_found.Count(g => g.Source.StartsWith("Documentos") || g.Source == "Saved Games" || g.Source.StartsWith("Adicionado")));
+        StatLocal.Text = Jogos(
+            _found.Count(g =>
+                g.Source.StartsWith("Documentos")
+                || g.Source == "Saved Games"
+                || g.Source.StartsWith("Adicionado")
+            )
+        );
         StatEngine.Text = Jogos(_found.Count(g => g.Source is "Unreal Engine" or "Unity"));
         StatCloud.Text = Jogos(_found.Count(g => g.Cloud));
         Count();
@@ -89,14 +124,19 @@ public sealed partial class GamesPage : Page
                 try
                 {
                     var bytes = FilesModule.Measure(path, S.Exclusions, token).Bytes;
-                    DispatcherQueue.TryEnqueue(() => { item.Col1 = Sys.Bytes(bytes); item.Refresh(); });
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        item.Col1 = Sys.Bytes(bytes);
+                        item.Refresh();
+                    });
                 }
                 catch (OperationCanceledException) { }
             });
         }
     }
 
-    IEnumerable<CheckItem> Group(object pill) => _games.Where(g => pill == QuickAll || (pill == QuickCloud ? g.Flag : !g.Flag));
+    IEnumerable<CheckItem> Group(object pill) =>
+        _games.Where(g => pill == QuickAll || (pill == QuickCloud ? g.Flag : !g.Flag));
 
     void Count()
     {
@@ -131,7 +171,8 @@ public sealed partial class GamesPage : Page
     async void OnAddGame(object sender, RoutedEventArgs e)
     {
         var path = FileDialog.PickFolder(L.T("Pasta de save do jogo"));
-        if (path == null || S.GameCustomFolders.Contains(path, StringComparer.OrdinalIgnoreCase)) return;
+        if (path == null || S.GameCustomFolders.Contains(path, StringComparer.OrdinalIgnoreCase))
+            return;
         S.GameCustomFolders.Add(path);
         Settings.Save();
         _rows.Clear();
@@ -142,9 +183,23 @@ public sealed partial class GamesPage : Page
     {
         if (string.IsNullOrEmpty(S.Destination))
         {
-            await Dialogs.InfoAsync(XamlRoot, L.T("Escolha o destino"), L.T("Clique em Destino dos backups, no menu lateral, e escolha um HD externo ou uma pasta."));
+            await Dialogs.InfoAsync(
+                XamlRoot,
+                L.T("Escolha o destino"),
+                L.T(
+                    "Clique em Destino dos backups, no menu lateral, e escolha um HD externo ou uma pasta."
+                )
+            );
             return;
         }
-        App.Shell.Run(new JobSpec { Title = "Saves de jogos", FilesLabel = "Saves de jogos", Games = true, Folders = GamesModule.SelectedFolders(_found) });
+        App.Shell.Run(
+            new JobSpec
+            {
+                Title = "Saves de jogos",
+                FilesLabel = "Saves de jogos",
+                Games = true,
+                Folders = GamesModule.SelectedFolders(_found),
+            }
+        );
     }
 }

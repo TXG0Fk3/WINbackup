@@ -4,10 +4,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using QRCoder;
-using Windows.ApplicationModel.DataTransfer;
-using Windows.Storage.Streams;
 using WINbackup.Controls;
 using WINbackup.Services;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage.Streams;
 
 namespace WINbackup.Pages;
 
@@ -31,7 +31,11 @@ public sealed partial class DonatePage : Page
         Responsive.StackWhenNarrow(MainGrid, 820);
 
         ReminderToggle.IsOn = !Settings.Data.DonationReminderOff;
-        ReminderToggle.Toggled += (_, on) => { Settings.Data.DonationReminderOff = !on; Settings.Save(); };
+        ReminderToggle.Toggled += (_, on) =>
+        {
+            Settings.Data.DonationReminderOff = !on;
+            Settings.Save();
+        };
 
         LivePixButton.IsEnabled = Donation.LivePixReady;
         PayPalButton.IsEnabled = Donation.PayPalReady;
@@ -48,10 +52,18 @@ public sealed partial class DonatePage : Page
         {
             var rb = new RadioButton
             {
-                Style = (Style)Application.Current.Resources["FilterRadio"], Height = 34, Padding = new Thickness(16, 0, 16, 0), GroupName = "amount",
-                Content = value is { } v ? $"R$ {v:0}" : L.T("Valor livre"), IsChecked = value == null,
+                Style = (Style)Application.Current.Resources["FilterRadio"],
+                Height = 34,
+                Padding = new Thickness(16, 0, 16, 0),
+                GroupName = "amount",
+                Content = value is { } v ? $"R$ {v:0}" : L.T("Valor livre"),
+                IsChecked = value == null,
             };
-            rb.Checked += (_, _) => { _amount = value; Render(); };
+            rb.Checked += (_, _) =>
+            {
+                _amount = value;
+                Render();
+            };
             Amounts.Children.Add(rb);
         }
         CopyKeyButton.Content = L.F("Copiar só a chave: {0}", Donation.PixKey);
@@ -60,9 +72,14 @@ public sealed partial class DonatePage : Page
 
     void Render()
     {
-        AmountText.Text = _amount is { } v ? v.ToString("C0", CultureInfo.GetCultureInfo("pt-BR")) : L.T("Valor livre");
+        AmountText.Text = _amount is { } v
+            ? v.ToString("C0", CultureInfo.GetCultureInfo("pt-BR"))
+            : L.T("Valor livre");
         using var generator = new QRCodeGenerator();
-        using var data = generator.CreateQrCode(Donation.PixPayload(_amount), QRCodeGenerator.ECCLevel.M);
+        using var data = generator.CreateQrCode(
+            Donation.PixPayload(_amount),
+            QRCodeGenerator.ECCLevel.M
+        );
         var png = new PngByteQRCode(data).GetGraphic(10);
         _ = ShowAsync(png);
     }
@@ -97,7 +114,10 @@ public sealed partial class DonatePage : Page
     }
 
     void OnLivePix(object sender, RoutedEventArgs e) => Sys.Open(Donation.LivePixUrl);
+
     void OnPayPal(object sender, RoutedEventArgs e) => Sys.Open(Donation.PayPalUrl);
+
     // Canal já com o pedido de inscrição
-    void OnYouTube(object sender, RoutedEventArgs e) => Sys.Open("https://www.youtube.com/winchestercanal?sub_confirmation=1");
+    void OnYouTube(object sender, RoutedEventArgs e) =>
+        Sys.Open("https://www.youtube.com/winchestercanal?sub_confirmation=1");
 }
