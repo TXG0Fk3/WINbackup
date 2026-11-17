@@ -20,6 +20,7 @@ public sealed partial class HomePage : Page
     public HomePage()
     {
         InitializeComponent();
+        ShowTip();
         var chosen = Settings.Data.ChosenPresets();
         for (var i = 0; i < Presets.All.Length; i++)
         {
@@ -65,6 +66,31 @@ public sealed partial class HomePage : Page
             Refresh();
         };
         Unloaded += (_, _) => Settings.DestinationChanged -= Refresh;
+    }
+
+    /// <summary>Dica embaixo dos presets, com o "Ctrl" em azul neon e negrito.</summary>
+    void ShowTip()
+    {
+        var tip = L.T(
+            "Dica: segure Ctrl e clique para escolher mais de um preset. O backup junta tudo numa execução só."
+        );
+        var at = tip.IndexOf("Ctrl", StringComparison.Ordinal);
+        PresetTip.Inlines.Clear();
+        if (at < 0)
+        {
+            PresetTip.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = tip });
+            return;
+        }
+        PresetTip.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = tip[..at] });
+        PresetTip.Inlines.Add(
+            new Microsoft.UI.Xaml.Documents.Run
+            {
+                Text = "Ctrl",
+                Foreground = UI.Neon,
+                FontWeight = FontWeights.Bold,
+            }
+        );
+        PresetTip.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = tip[(at + 4)..] });
     }
 
     /// <summary>Clique escolhe só este preset; Ctrl + clique marca ou desmarca este e mantém os outros.</summary>

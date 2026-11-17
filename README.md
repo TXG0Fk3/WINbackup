@@ -35,7 +35,7 @@
 > 🤖 **Este aplicativo foi criado com inteligência artificial.** O código foi escrito pelo **Claude**, a IA da Anthropic, a partir do protótipo e das decisões do Canal WINchester, que orientou, revisou e testou cada etapa.
 
 > [!WARNING]
-> **Versão 0.4.0 beta, de testes.** Todos os módulos funcionam, mas ainda estamos validando em PCs diferentes. Enquanto testa, **mantenha uma cópia extra dos seus arquivos importantes** e conte pra gente o que encontrar.
+> **Versão 0.4.0.** Como em qualquer ferramenta de backup, **mantenha uma cópia extra dos seus arquivos importantes** e conte pra gente o que encontrar.
 
 <p align="center">
   <img src="docs/img/presets.gif" alt="Tela inicial do WINbackup alternando entre os presets" width="90%">
@@ -135,10 +135,10 @@
 ## 📥 Baixar e testar
 
 <p align="center">
-  <a href="https://github.com/winchestercanal/WINbackup/releases"><img src="https://img.shields.io/badge/Baixar%20o%20WINbackup-0.4.0%20beta-19e3ff?labelColor=0a0f1c&style=for-the-badge" alt="Baixar o WINbackup" height="40"></a>
+  <a href="https://github.com/winchestercanal/WINbackup/releases"><img src="https://img.shields.io/badge/Baixar%20o%20WINbackup-0.4.0-19e3ff?labelColor=0a0f1c&style=for-the-badge" alt="Baixar o WINbackup" height="40"></a>
 </p>
 
-1. Em **[Releases](https://github.com/winchestercanal/WINbackup/releases)**, baixe o **`WINbackup-…-beta.exe`** da versão mais recente.
+1. Em **[Releases](https://github.com/winchestercanal/WINbackup/releases)**, baixe o **`WINbackup-….exe`** da versão mais recente.
 2. Abra o arquivo e aceite o aviso de administrador. Pronto: é um arquivo só, não precisa instalar nem extrair nada. Dá para levar no pendrive.
 3. Prefere a pasta com os arquivos soltos? Baixe o `.zip`, extraia e abra o `WINbackup.exe` de dentro dela.
 

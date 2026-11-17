@@ -39,8 +39,7 @@
                         <ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
                     </Grid.ColumnDefinitions>
                 </Grid>
-                <TextBlock x:Name="PresetTip" Style="{StaticResource Small}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"
-                           Text="{s:T K='Dica: segure Ctrl e clique para escolher mais de um preset. O backup junta tudo numa execução só.'}"/>
+                <TextBlock x:Name="PresetTip" Style="{StaticResource Small}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

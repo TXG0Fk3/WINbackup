@@ -1,6 +1,6 @@
 ﻿# Gera os arquivos de um release em publish:
-#   WINbackup-<versão>-beta.exe          versão portátil: um arquivo só, se extrai sozinho ao abrir
-#   WINbackup-<versão>-beta-win-x64.zip  pasta com o app, para quem prefere extrair
+#   WINbackup-<versão>.exe               versão portátil: um arquivo só, se extrai sozinho ao abrir
+#   WINbackup-<versão>-win-x64.zip       pasta com o app, para quem prefere extrair
 # Uso: powershell -File scripts\publish.ps1 [-Configuration Teste] [-Out pasta]
 # -Configuration Teste gera a mesma coisa sem pedir administrador (para testar sem UAC).
 param([string]$Configuration = 'Release', [string]$Out = '')
@@ -13,7 +13,7 @@ New-Item -ItemType Directory -Force $Out | Out-Null
 $Out = Resolve-Path $Out
 
 $version = ([xml](Get-Content $project)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
-$name = "WINbackup-$version-beta"
+$name = "WINbackup-$version"
 $work = Join-Path ([IO.Path]::GetTempPath()) "winbackup-publish-$PID"
 
 # Pasta (para o .zip)

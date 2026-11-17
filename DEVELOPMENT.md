@@ -1,4 +1,4 @@
-# WINbackup 0.4.0 (beta): app para Windows
+# WINbackup 0.4.0: app para Windows
 
 App do **Canal WINchester** feito a partir do protótipo em [`interface`](interface/HANDOFF.md).
 WinUI 3 + .NET 10 (C#), Windows App SDK 2.5, autocontido (não precisa instalar nada no PC formatado) e roda como Administrador.
@@ -75,7 +75,7 @@ Teste sempre o pacote publicado também (`dotnet publish -c Teste … -o <pasta>
 ## Publicar um release
 
 ```powershell
-powershell -File scripts\publish.ps1            # Release: publish\WINbackup-<versão>-beta.exe e -win-x64.zip
+powershell -File scripts\publish.ps1            # Release: publish\WINbackup-<versão>.exe e -win-x64.zip
 powershell -File scripts\publish.ps1 -Configuration Teste -Out <pasta>   # o mesmo sem pedir administrador, para testar
 ```
 
