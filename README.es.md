@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">🇧🇷 Português</a> · <a href="README.en.md">🇺🇸 English</a> · <b>🇪🇸 Español</b>
+  🌐 <a href="README.md">Português</a> · <a href="README.en.md">English</a> · <b>Español</b>
 </p>
 
 <p align="center">
