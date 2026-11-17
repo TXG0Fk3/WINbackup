@@ -3,6 +3,10 @@
 </p>
 
 <p align="center">
+  <b>🇧🇷 Português</b> · <a href="README.en.md">🇺🇸 English</a> · <a href="README.es.md">🇪🇸 Español</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/winchestercanal/WINbackup/releases"><img src="https://img.shields.io/github/v/release/winchestercanal/WINbackup?include_prereleases&label=vers%C3%A3o&color=19e3ff&labelColor=0a0f1c&style=for-the-badge" alt="Versão"></a>
   <a href="https://github.com/winchestercanal/WINbackup/releases"><img src="https://img.shields.io/github/downloads/winchestercanal/WINbackup/total?label=downloads&color=2f7bff&labelColor=0a0f1c&style=for-the-badge" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bff?labelColor=0a0f1c&style=for-the-badge" alt="Windows 10 e 11">
@@ -87,7 +91,7 @@
     <td align="center" width="33%">
       <img src="docs/img/icons/download.svg" width="56" alt=""><br>
       <b>1. Faça o backup</b><br>
-      <sub>Escolha um preset (completo, documentos, dev, gamer ou criadores) e o destino.</sub>
+      <sub>Escolha um ou mais presets (completo, documentos, dev, gamer ou criadores) e o destino.</sub>
     </td>
     <td align="center" width="33%">
       <img src="docs/img/icons/drive.svg" width="56" alt=""><br>
@@ -157,7 +161,7 @@ Encontrou um erro ou tem uma sugestão? **[Abra uma issue](https://github.com/wi
 
 - o que você fez e o que esperava acontecer;
 - a versão do Windows;
-- se possível, o log da execução (`backup_audit_….log` dentro da pasta `WINbackup_<data>` do backup, ou `%APPDATA%\WINbackup\logs`) e o arquivo `%APPDATA%\WINbackup\erros.log`.
+- se possível, os arquivos da pasta `Logs` dentro do backup (`WINbackup_<data>\Logs`) ou de `%APPDATA%\WINbackup\logs`.
 
 ## ⌨️ Linha de comando
 
