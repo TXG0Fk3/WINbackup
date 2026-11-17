@@ -1,7 +1,7 @@
-"""Traduções do WINbackup (app/WINbackup/Strings/en.json e es.json).
+"""Traduções do WINbackup (WINbackup/Strings/en.json e es.json).
 
-    python app/tools/l10n.py add arquivo.txt   junta traduções no formato "português|english|español", uma por linha
-    python app/tools/l10n.py missing           lista textos do código (L.T/L.F/L.N e {s:T K='…'}) sem tradução em inglês
+    python scripts/l10n.py add arquivo.txt   junta traduções no formato "português|english|español", uma por linha
+    python scripts/l10n.py missing           lista textos do código (L.T/L.F/L.N e {s:T K='…'}) sem tradução em inglês
 
 No arquivo de entrada, \\n vira quebra de linha e \\\\ vira uma barra invertida.
 """

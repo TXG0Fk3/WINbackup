@@ -1,7 +1,7 @@
-# Gera os arquivos de um release em app\publish:
+﻿# Gera os arquivos de um release em publish:
 #   WINbackup-<versão>-beta.exe          versão portátil: um arquivo só, se extrai sozinho ao abrir
 #   WINbackup-<versão>-beta-win-x64.zip  pasta com o app, para quem prefere extrair
-# Uso: powershell -File app\tools\publish.ps1 [-Configuration Teste] [-Out pasta]
+# Uso: powershell -File scripts\publish.ps1 [-Configuration Teste] [-Out pasta]
 # -Configuration Teste gera a mesma coisa sem pedir administrador (para testar sem UAC).
 param([string]$Configuration = 'Release', [string]$Out = '')
 
